@@ -1,0 +1,87 @@
+.Dd $Mdocdate$
+.Dt KSQL_BIND_DOUBLE 3
+.Os
+.Sh NAME
+.Nm ksql_bind_blob ,
+.Nm ksql_bind_double ,
+.Nm ksql_bind_int ,
+.Nm ksql_bind_str ,
+.Nm ksql_bind_zblob
+.Nd bind values to a prepared statement
+.Sh LIBRARY
+.Lb ksql
+.Sh SYNOPSIS
+.In ksql.h
+.Ft "enum ksqlc"
+.Fo ksql_stmt_blob
+.Fa "struct ksql_stmt *stmt"
+.Fa "size_t col"
+.Fa "const void *val"
+.Fa "size_t valsz"
+.Fc
+.Ft "enum ksqlc"
+.Fo ksql_stmt_double
+.Fa "struct ksql_stmt *stmt"
+.Fa "size_t col"
+.Fa "double val"
+.Fc
+.Ft "enum ksqlc"
+.Fo ksql_stmt_int
+.Fa "struct ksql_stmt *stmt"
+.Fa "size_t col"
+.Fa "int64_t val"
+.Fc
+.Ft "enum ksqlc"
+.Fo ksql_stmt_str
+.Fa "struct ksql_stmt *stmt"
+.Fa "size_t col"
+.Fa "const char *val"
+.Fc
+.Ft "enum ksqlc"
+.Fo ksql_stmt_zblob
+.Fa "struct ksql_stmt *stmt"
+.Fa "size_t col"
+.Fa "size_t valsz"
+.Fc
+.Sh DESCRIPTION
+The
+.Nm ksql_bind_blob ,
+.Nm ksql_bind_bytes ,
+.Nm ksql_bind_double ,
+.Nm ksql_bind_int ,
+.Nm ksql_bind_str ,
+and
+.Nm ksql_bind_zblob
+functions bind data to a statement prepared with
+.Xr ksql_stmt_alloc 3 .
+They all accept the relevant column to bind, which starts at zero.
+.\" .Sh CONTEXT
+.\" For section 9 functions only.
+.\" .Sh IMPLEMENTATION NOTES
+.\" Not used in OpenBSD.
+.Sh RETURN VALUES
+These functions return
+.Dv KSQL_DB
+if the underlying bind operation fails or
+.Dv KSQL_OK
+on success.
+.\" For sections 2, 3, and 9 function return values only.
+.\" .Sh ENVIRONMENT
+.\" For sections 1, 6, 7, and 8 only.
+.\" .Sh FILES
+.\" .Sh EXIT STATUS
+.\" For sections 1, 6, and 8 only.
+.\" .Sh EXAMPLES
+.\" .Sh DIAGNOSTICS
+.\" For sections 1, 4, 6, 7, 8, and 9 printf/stderr messages only.
+.\" .Sh ERRORS
+.\" For sections 2, 3, 4, and 9 errno settings only.
+.\" .Sh SEE ALSO
+.\" .Xr foobar 1
+.\" .Sh STANDARDS
+.\" .Sh HISTORY
+.\" .Sh AUTHORS
+.\" .Sh CAVEATS
+.\" .Sh BUGS
+.\" .Sh SECURITY CONSIDERATIONS
+.\" Not used in OpenBSD.

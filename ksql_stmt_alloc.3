@@ -1,0 +1,79 @@
+.Dd $Mdocdate$
+.Dt KSQL_STMT_ALLOC 3
+.Os
+.Sh NAME
+.Nm ksql_stmt_alloc
+.Nd allocate a statement on a database connection
+.Sh LIBRARY
+.Lb ksql
+.Sh SYNOPSIS
+.In ksql.h
+.Ft enum ksqlc
+.Fo ksql_stmt_alloc
+.Fa "struct ksql *sql"
+.Fa "struct ksql_stmt **stmt"
+.Fa "const char *sqlstmt"
+.Fa "size_t id"
+.Fc
+.Sh DESCRIPTION
+The
+.Nm
+function allocates a SQL statement
+.Fa sqlstmt
+on a database connection
+.Fa sql
+previously opened with
+.Xr ksql_open 3 .
+It must be matched by a call to
+.Xr ksql_stmt_free 3 .
+Upon success, this will fill in the
+.Fa stmt
+pointer.
+The idenitfier
+.Fa id
+is currently not used.
+.Pp
+The
+.Nm
+function handles a locked database (specifically,
+.Dv SQLITE_BUSY ,
+.Dv SQLITE_LOCKED ,
+or
+.Dv SQLITE_PROTOCOL )
+by sleeping for a random interval, then trying again infinitely.
+.\" .Sh CONTEXT
+.\" For section 9 functions only.
+.\" .Sh IMPLEMENTATION NOTES
+.\" Not used in OpenBSD.
+.Sh RETURN VALUES
+This returns
+.Dv KSQL_MEM
+on allocation failure,
+.Dv KSQL_NOTOPEN
+if the database isn't connected, or
+.Dv KSQL_DB
+if there were errors invoking
+.Xr sqlite3_prepare_v2 ,
+otherwise
+.Dv KSQL_OK
+on success.
+.\" For sections 2, 3, and 9 function return values only.
+.\" .Sh ENVIRONMENT
+.\" For sections 1, 6, 7, and 8 only.
+.\" .Sh FILES
+.\" .Sh EXIT STATUS
+.\" For sections 1, 6, and 8 only.
+.\" .Sh EXAMPLES
+.\" .Sh DIAGNOSTICS
+.\" For sections 1, 4, 6, 7, 8, and 9 printf/stderr messages only.
+.\" .Sh ERRORS
+.\" For sections 2, 3, 4, and 9 errno settings only.
+.\" .Sh SEE ALSO
+.\" .Xr foobar 1
+.\" .Sh STANDARDS
+.\" .Sh HISTORY
+.\" .Sh AUTHORS
+.\" .Sh CAVEATS
+.\" .Sh BUGS
+.\" .Sh SECURITY CONSIDERATIONS
+.\" Not used in OpenBSD.

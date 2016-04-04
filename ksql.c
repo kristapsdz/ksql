@@ -14,6 +14,11 @@
 
 TAILQ_HEAD(ksqlstmtq, ksqlstmt);
 
+TAILQ_HEAD(ksqlq, ksql) ksqls = 
+	TAILQ_HEAD_INITIALIZER(ksqls);
+
+static	int atexits = 0;
+
 /*
  * Holder for SQLite statements.
  */
@@ -35,6 +40,7 @@ struct	ksql {
 	struct ksqlstmtq	 stmt_free;
 	unsigned int		 flags;
 #define	KSQL_TRANS		 0x01 /* trans is open */
+	TAILQ_ENTRY(ksql)	 entries;
 };
 
 static	const char * const ksqlcs[] = {
@@ -46,8 +52,24 @@ static	const char * const ksqlcs[] = {
 	"database not open", /* KSQL_NOTOPEN */
 	"database error", /* KSQL_DB */
 	"transaction already open or not yet open", /* KSQL_TRANS */
-	"statement open on exit", /* KSQL_STMT */
+	"statement(s) open on exit", /* KSQL_STMT */
 };
+
+static void
+ksql_atexit(void)
+{
+	struct ksql	*p;
+
+	while ( ! TAILQ_EMPTY(&ksqls)) {
+		p = TAILQ_FIRST(&ksqls);
+		/*
+		 * We're already exiting, so don't let any of the
+		 * interior functions bail us out again.
+		 */
+		p->cfg.flags &= ~KSQL_EXIT_ON_ERR;
+		ksql_free(p);
+	}
+}
 
 /*
  * See ksql_dberr().
@@ -121,9 +143,24 @@ ksql_alloc(const struct ksqlcfg *cfg)
 	if (NULL == cfg) {
 		p->cfg.dberr = sqlitedbmsg;
 		p->cfg.err = sqlitemsg;
-		p->cfg.flags = KSQL_EXIT_ON_ERR;
+		p->cfg.flags = KSQL_EXIT_ON_ERR | KSQL_SAFE_EXIT;
 	} else
 		p->cfg = *cfg;
+
+	/*
+	 * If we're going to exit on failure, then automatically
+	 * register this to be cleaned up if we do exit.
+	 */
+	if (KSQL_SAFE_EXIT & p->cfg.flags) {
+		if (0 == atexits) {
+			if (-1 == atexit(ksql_atexit)) {
+				free(p);
+				return(NULL);
+			}
+			atexits = 1;
+		}
+		TAILQ_INSERT_TAIL(&ksqls, p, entries);
+	}
 
 	srandom(arc4random());
 
@@ -137,6 +174,7 @@ ksql_close(struct ksql *p)
 {
 	struct ksqlstmt	*stmt;
 	char		 buf[64];
+	int		 haserrs = 0;
 
 	if (NULL == p || NULL == p->db)
 		return(KSQL_OK);
@@ -144,24 +182,33 @@ ksql_close(struct ksql *p)
 	free(p->dbfile);
 	p->dbfile = NULL;
 
+	/* 
+	 * Finalise out all open statements first. 
+	 * Don't run ksql_err() yet because it will kill the process
+	 * and we want to free these now.
+	 */
 	while ( ! TAILQ_EMPTY(&p->stmt_used)) {
 		stmt = TAILQ_FIRST(&p->stmt_used);
 		TAILQ_REMOVE(&p->stmt_used, stmt, entries);
 		sqlite3_finalize(stmt->stmt);
 		snprintf(buf, sizeof(buf),
-			"statement %zu still open",
-			stmt->id);
+			"statement %zu still open", stmt->id);
 		stmt->stmt = NULL;
 		TAILQ_INSERT_TAIL(&p->stmt_free, stmt, entries);
+		haserrs = 1;
 		if (NULL != p->cfg.err)
 			p->cfg.err(p->cfg.arg, KSQL_STMT, buf);
 	}
 
+	/* Now try to close the database itself. */
 	if (SQLITE_OK != sqlite3_close(p->db))
 		return(ksql_dberr(p));
-
 	p->db = NULL;
-	return(KSQL_OK);
+
+	/* Here we remember if we had statement errors. */
+	return(haserrs ? 
+		ksql_err(p, KSQL_STMT, NULL) :
+		KSQL_OK);
 }
 
 enum ksqlc
@@ -181,6 +228,10 @@ ksql_free(struct ksql *p)
 		free(stmt);
 		stmt = NULL;
 	}
+
+	if (KSQL_SAFE_EXIT & p->cfg.flags)
+		TAILQ_REMOVE(&ksqls, p, entries);
+
 	free(p);
 	return(er);
 }
@@ -387,8 +438,6 @@ ksql_bind_zblob(struct ksqlstmt *stmt, size_t pos, size_t valsz)
 {
 	int	 rc;
 
-	if (NULL == stmt->sql->db) 
-		return(ksql_err(stmt->sql, KSQL_NOTOPEN, NULL));
 	rc = sqlite3_bind_zeroblob(stmt->stmt, pos + 1, valsz);
 	if (SQLITE_OK == rc)
 		return(KSQL_OK);
@@ -401,8 +450,6 @@ ksql_bind_blob(struct ksqlstmt *stmt,
 {
 	int	rc;
 
-	if (NULL == stmt->sql->db) 
-		return(ksql_err(stmt->sql, KSQL_NOTOPEN, NULL));
 	rc = sqlite3_bind_blob(stmt->stmt, 
 		pos + 1, val, valsz, SQLITE_STATIC);
 	if (SQLITE_OK == rc)
@@ -411,12 +458,10 @@ ksql_bind_blob(struct ksqlstmt *stmt,
 }
 
 enum ksqlc
-ksql_bind_text(struct ksqlstmt *stmt, size_t pos, const char *val)
+ksql_bind_str(struct ksqlstmt *stmt, size_t pos, const char *val)
 {
 	int	 rc;
 
-	if (NULL == stmt->sql->db) 
-		return(ksql_err(stmt->sql, KSQL_NOTOPEN, NULL));
 	rc = sqlite3_bind_text(stmt->stmt, pos + 1, val, -1, SQLITE_STATIC);
 	if (SQLITE_OK == rc)
 		return(KSQL_OK);
@@ -428,8 +473,6 @@ ksql_bind_double(struct ksqlstmt *stmt, size_t pos, double val)
 {
 	int	 rc;
 
-	if (NULL == stmt->sql->db) 
-		return(ksql_err(stmt->sql, KSQL_NOTOPEN, NULL));
 	rc = sqlite3_bind_double(stmt->stmt, pos + 1, val);
 	if (SQLITE_OK == rc)
 		return(KSQL_OK);
@@ -440,8 +483,6 @@ enum ksqlc
 ksql_bind_null(struct ksqlstmt *stmt, size_t pos)
 {
 
-	if (NULL == stmt->sql->db) 
-		return(ksql_err(stmt->sql, KSQL_NOTOPEN, NULL));
 	if (SQLITE_OK == sqlite3_bind_null(stmt->stmt, pos + 1))
 		return(KSQL_OK);
 	return(ksql_dberr(stmt->sql));
@@ -451,8 +492,6 @@ enum ksqlc
 ksql_bind_int(struct ksqlstmt *stmt, size_t pos, int64_t val)
 {
 
-	if (NULL == stmt->sql->db) 
-		return(ksql_err(stmt->sql, KSQL_NOTOPEN, NULL));
 	if (SQLITE_OK == sqlite3_bind_int64(stmt->stmt, pos + 1, val))
 		return(KSQL_OK);
 	return(ksql_dberr(stmt->sql));

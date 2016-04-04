@@ -17,24 +17,17 @@ enum ksqlc {
 	KSQL_STMT, /* statement still open at close */
 };
 
-/*
- * Error message reporters.
- * The first accepts the argument specified in ksqlcfg, the error
- * code in question, the SQLite error code, the SQL extended error code,
- * and the SQLite error message.
- * The second is for non-DB errors.
- */
 typedef	void (*ksqldbmsg)(void *, int, int, const char *, const char *);
 typedef	void (*ksqlmsg)(void *, enum ksqlc, const char *);
 
-#define	KSQL_EXIT_ON_ERR	0x01
-#define	KSQL_FOREIGN_KEYS	0x02
-
 struct	ksqlcfg {
-	unsigned int	 flags;
-	ksqlmsg	 err;
-	ksqldbmsg	 dberr;
-	void		*arg;
+	unsigned int	  flags;
+#define	KSQL_EXIT_ON_ERR  0x01
+#define	KSQL_FOREIGN_KEYS 0x02
+#define	KSQL_SAFE_EXIT    0x04
+	ksqlmsg	 	  err;
+	ksqldbmsg	  dberr;
+	void		 *arg;
 };
 
 struct	ksql;
@@ -48,7 +41,7 @@ enum ksqlc	 ksql_bind_blob(struct ksqlstmt *,
 enum ksqlc	 ksql_bind_double(struct ksqlstmt *, size_t, double);
 enum ksqlc	 ksql_bind_int(struct ksqlstmt *, size_t, int64_t);
 enum ksqlc	 ksql_bind_null(struct ksqlstmt *, size_t);
-enum ksqlc	 ksql_bind_text(struct ksqlstmt *, size_t, const char *);
+enum ksqlc	 ksql_bind_str(struct ksqlstmt *, size_t, const char *);
 enum ksqlc	 ksql_bind_zblob(struct ksqlstmt *, size_t, size_t);
 enum ksqlc	 ksql_close(struct ksql *);
 enum ksqlc	 ksql_exec(struct ksql *, const char *, size_t);
