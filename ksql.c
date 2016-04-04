@@ -170,6 +170,9 @@ ksql_free(struct ksql *p)
 	struct ksqlstmt	*stmt;
 	enum ksqlc	 er;
 
+	if (NULL == p)
+		return(KSQL_OK);
+
 	er = ksql_close(p);
 	while ( ! TAILQ_EMPTY(&p->stmt_free)) {
 		stmt = TAILQ_FIRST(&p->stmt_free);
@@ -200,10 +203,12 @@ ksql_sleep(size_t attempt)
 }
 
 enum ksqlc
-ksql_exec(struct ksql *p, const char *sql)
+ksql_exec(struct ksql *p, const char *sql, size_t id)
 {
 	size_t	attempt = 0;
 	int	rc;
+
+	(void)id; /* FOR NOW */
 
 	if (NULL == p->db)
 		return(ksql_err(p, KSQL_NOTOPEN, NULL));
@@ -256,18 +261,18 @@ again:
 
 	/* Handle required foreign key invocation. */
 	return(KSQL_FOREIGN_KEYS & p->cfg.flags ?
-		ksql_exec(p, "PRAGMA foreign_keys = ON;") :
+		ksql_exec(p, "PRAGMA foreign_keys = ON;", SIZE_MAX) :
 		KSQL_OK);
 }
 
 static enum ksqlc
-ksql_step_inner(struct ksql *p, struct ksqlstmt *stmt, int cstr)
+ksql_step_inner(struct ksqlstmt *stmt, int cstr)
 {
 	int	 rc;
 	size_t	 attempt = 0;
 
-	if (NULL == p->db) 
-		return(ksql_err(p, KSQL_NOTOPEN, NULL));
+	if (NULL == stmt->sql->db) 
+		return(ksql_err(stmt->sql, KSQL_NOTOPEN, NULL));
 again:
 	rc = sqlite3_step(stmt->stmt);
 	if (SQLITE_BUSY == rc) {
@@ -288,21 +293,28 @@ again:
 
 	if (SQLITE_CONSTRAINT == rc && cstr)
 		return(KSQL_CONSTRAINT);
-	return(ksql_dberr(p));
+	return(ksql_dberr(stmt->sql));
+}
+
+void
+ksql_stmt_reset(struct ksqlstmt *stmt)
+{
+
+	sqlite3_reset(stmt->stmt);
 }
 
 enum ksqlc
-ksql_step(struct ksql *p, struct ksqlstmt *stmt)
+ksql_stmt_step(struct ksqlstmt *stmt)
 {
 
-	return(ksql_step_inner(p, stmt, 0));
+	return(ksql_step_inner(stmt, 0));
 }
 
 enum ksqlc
-ksql_cstep(struct ksql *p, struct ksqlstmt *stmt)
+ksql_stmt_cstep(struct ksqlstmt *stmt)
 {
 
-	return(ksql_step_inner(p, stmt, 1));
+	return(ksql_step_inner(stmt, 1));
 }
 
 void
@@ -457,8 +469,8 @@ ksql_trans_open_inner(struct ksql *p, int immediate)
 
 	p->flags |= KSQL_TRANS;
 	return(immediate ? 
-		ksql_exec(p, "BEGIN IMMEDIATE") : 
-		ksql_exec(p, "BEGIN TRANSACTION"));
+		ksql_exec(p, "BEGIN IMMEDIATE", SIZE_MAX) : 
+		ksql_exec(p, "BEGIN TRANSACTION", SIZE_MAX));
 }
 
 enum ksqlc
@@ -483,7 +495,7 @@ ksql_trans_commit(struct ksql *p)
 		return(ksql_err(p, KSQL_NOTOPEN, NULL));
 	if ( ! (KSQL_TRANS & p->flags))
 		return(KSQL_TRANS);
-	return(ksql_exec(p, "COMMIT TRANSACTION"));
+	return(ksql_exec(p, "COMMIT TRANSACTION", SIZE_MAX));
 }
 
 enum ksqlc
@@ -494,7 +506,7 @@ ksql_trans_rollback(struct ksql *p)
 		return(ksql_err(p, KSQL_NOTOPEN, NULL));
 	if ( ! (KSQL_TRANS & p->flags))
 		return(KSQL_TRANS);
-	return(ksql_exec(p, "ROLLBACK TRANSACTION"));
+	return(ksql_exec(p, "ROLLBACK TRANSACTION", SIZE_MAX));
 }
 
 enum ksqlc
