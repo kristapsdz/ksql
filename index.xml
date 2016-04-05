@@ -51,6 +51,7 @@
 							href="https://www.sqlite.org/c3ref/intro.html">C-language interface</a>.
 						It is written to make sure sloppy programming won't cause your SQLite database to be inconsistent (transactions and
 						statements open on exit and certain signals).
+						It runs on OpenBSD and Mac OS X.
 					</p>
 				</div>
 			</section>
