@@ -1,6 +1,6 @@
 ## Synopsis
 
-ksql is a simple warpper around the SQLite 
+ksql is a simple wrapper around the SQLite 
 [C-language interface](https://www.sqlite.org/c3ref/intro.html).
 
 ## Installation

@@ -31,10 +31,11 @@ enum ksqlc {
 	KSQL_DB, /* errors in DB */
 	KSQL_TRANS, /* transaction recursive or not started */
 	KSQL_STMT, /* statement still open at close */
+	KSQL_EXIT, /* closing database on exit */
 };
 
 typedef	void (*ksqldbmsg)(void *, int, int, const char *, const char *);
-typedef	void (*ksqlmsg)(void *, enum ksqlc, const char *);
+typedef	void (*ksqlmsg)(void *, enum ksqlc, const char *, const char *);
 
 struct	ksqlcfg {
 	unsigned int	  flags;

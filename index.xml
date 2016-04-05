@@ -34,6 +34,9 @@
 						<li><a href="ksql_trans_open.3.html">ksql_trans_open(3)</a></li>
 					</ul>
 				</li>
+				<li>
+					<a href="https://github.com/kristapsdz/ksql"><i class="fa fa-github fa-fw"></i> github</a>
+				</li>
 			</ul>
 		</nav>
 		<article>
@@ -53,7 +56,14 @@
 			</section>
 		</article>
 		<footer>
-			&#169; 2016, <a href="http://kristaps.bsd.lv">Kristaps Dzonsons</a>
+			<div>
+				&#169; 2016, <a href="http://kristaps.bsd.lv">Kristaps Dzonsons</a>
+			</div>
+			<div>
+				<a href="https://scan.coverity.com/projects/ksql">
+					<img alt="Coverity Scan Build Status" src="https://scan.coverity.com/projects/8471/badge.svg"/>
+				</a>
+			</div>
 		</footer>
 	</body>
 </html>

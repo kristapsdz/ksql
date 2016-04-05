@@ -74,13 +74,16 @@ By default,
 .Nm ksql
 will trigger calls to
 .Xr exit 2
-if any of the underlying database functions fail, in which case you're
-probably screwed anyway.
+if any of the database functions fail.
 It will also register an
 .Xr atexit 3
-hook that will clean up any open database connections, so if your
-program fails while performing (say) transactions, you won't have an
-inconsistent database.
+hook that will clean up any open database connections and make sure that
+.Dv SIGABRT
+and
+.Dv SIGSEGV
+signals are intercepted and trigger a controlled exit.
+Thus, if your program fails while performing (say) transactions, or any
+sort of open database, you won't corrupt the data.
 .Pp
 To compile with
 .Nm ksql ,

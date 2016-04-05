@@ -14,9 +14,12 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
+#include <sys/param.h>
 #include <sys/queue.h>
 
 #include <assert.h>
+#include <setjmp.h>
+#include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,10 +32,31 @@
 
 TAILQ_HEAD(ksqlstmtq, ksqlstmt);
 
+/*
+ * All of our current connections.
+ * Modifications to this storage MUST be wrapped with ksql_jmp_start()
+ * and ksql_jmp_end() to keep our longjmp wrapper consistent.
+ */
 TAILQ_HEAD(ksqlq, ksql) ksqls = 
 	TAILQ_HEAD_INITIALIZER(ksqls);
 
-static	int atexits = 0;
+/* 
+ * Keep track of whether we've set any atexit(3) hooks for
+ * KSQL_SAFE_EXIT handles, since we only want to do so once.
+ */
+static	int atexits;
+
+/*
+ * Our longjmp buffer, set in the critical section around "ksqls"
+ * modifications if atexits is non-zero.
+ */
+static	sigjmp_buf jmpbuf;
+
+/*
+ * Whether our longjmp handler has been installed.
+ * If so and we're in the signal handler, invoke the longjmp.
+ */
+static	volatile sig_atomic_t dojmp;
 
 /*
  * Holder for SQLite statements.
@@ -68,12 +92,24 @@ static	const char * const ksqlcs[] = {
 	"database error", /* KSQL_DB */
 	"transaction already open or not yet open", /* KSQL_TRANS */
 	"statement(s) open on exit", /* KSQL_STMT */
+	"closing on exit", /* KSQL_EXIT */
 };
 
+static enum ksqlc ksql_free_inner(struct ksql *, int);
+
+/*
+ * This is called within an atexit(3) handler for connections specified
+ * with KSQL_SAFE_FAIL.
+ * It suppresses KSQL_EXIT_ON_ERR and the longjmp buffer, then closes
+ * out all resources.
+ */
 static void
 ksql_atexit(void)
 {
 	struct ksql	*p;
+
+	atexits = 0;
+	dojmp = 0;
 
 	while ( ! TAILQ_EMPTY(&ksqls)) {
 		p = TAILQ_FIRST(&ksqls);
@@ -82,7 +118,7 @@ ksql_atexit(void)
 		 * interior functions bail us out again.
 		 */
 		p->cfg.flags &= ~KSQL_EXIT_ON_ERR;
-		ksql_free(p);
+		ksql_free_inner(p, 1);
 	}
 }
 
@@ -94,7 +130,7 @@ ksql_err_noexit(struct ksql *p, enum ksqlc erc, const char *msg)
 		msg = ksqlcs[erc];
 	assert(NULL != msg);
 	if (NULL != p->cfg.err)
-		p->cfg.err(p->cfg.arg, erc, msg);
+		p->cfg.err(p->cfg.arg, erc, p->dbfile, msg);
 }
 
 /*
@@ -146,11 +182,16 @@ sqlitedbmsg(void *arg, int sql3, int esql3, const char *file, const char *msg)
 }
 
 static void
-sqlitemsg(void *arg, enum ksqlc code, const char *msg)
+sqlitemsg(void *arg, enum ksqlc code, const char *file, const char *msg)
 {
 
 	(void)arg;
-	fprintf(stderr, "%s: %s (%d)\n", getprogname(), msg, code);
+	if (NULL != file)
+		fprintf(stderr, "%s: %s: %s (%d)\n", 
+			getprogname(), file, msg, code);
+	else
+		fprintf(stderr, "%s: %s (%d)\n", 
+			getprogname(), msg, code);
 }
 
 /*
@@ -196,6 +237,52 @@ again:
 	return(KSQL_DB);
 }
 
+/*
+ * Signal handler to be used if a connection has specified
+ * KSQL_SAFE_FAIL and we're interrupted by a bad signal.
+ * We only act if "dojmp" has been set, that is, if we're not in a
+ * critical section.
+ */
+static void
+ksql_signal(int code)
+{
+
+	if (dojmp) {
+		dojmp = 0;
+		siglongjmp(jmpbuf, code);
+	} else 
+		dojmp = 0;
+}
+
+/*
+ * Start a critical section that modifies "ksqls".
+ * This must be matched by ksql_jmp_end();
+ * Within a critical section, our longjmp buffer is disabled because the
+ * automatic storage we'd modify is in flux.
+ */
+static void
+ksql_jmp_start(void)
+{
+
+	dojmp = 0;
+}
+
+/*
+ * See ksql_jmp_start().
+ */
+static void
+ksql_jmp_end(void)
+{
+
+	/* Only run this if our exit handler is valid. */
+	if ( ! atexits)
+		return;
+
+	/* Restore jump buffer. */
+	if (sigsetjmp(jmpbuf, 1))
+		exit(EXIT_FAILURE);
+	dojmp = 1;
+}
 
 struct ksql *
 ksql_alloc(const struct ksqlcfg *cfg)
@@ -207,6 +294,12 @@ ksql_alloc(const struct ksqlcfg *cfg)
 		return(NULL);
 
 	if (NULL == cfg) {
+		/*
+		 * Make some safe defaults here.
+		 * Specifically, log all of our database and `soft'
+		 * errors to stderr and make us bail on exit, as well
+		 * trying to catch signals/exits.
+		 */
 		p->cfg.dberr = sqlitedbmsg;
 		p->cfg.err = sqlitemsg;
 		p->cfg.flags = KSQL_EXIT_ON_ERR | KSQL_SAFE_EXIT;
@@ -218,14 +311,27 @@ ksql_alloc(const struct ksqlcfg *cfg)
 	 * register this to be cleaned up if we do exit.
 	 */
 	if (KSQL_SAFE_EXIT & p->cfg.flags) {
+		/* 
+		 * Only do this once to prevent us from running out of
+		 * atexit(3) calls (we're limited).
+		 */
 		if (0 == atexits) {
 			if (-1 == atexit(ksql_atexit)) {
 				free(p);
 				return(NULL);
 			}
 			atexits = 1;
+			/* 
+			 * Note: we don't set dojmp until after
+			 * ksql_jmp_end(), so our jump buffer won't get
+			 * invoked yet. 
+			 */
+			signal(SIGABRT, ksql_signal);
+			signal(SIGSEGV, ksql_signal);
 		}
+		ksql_jmp_start();
 		TAILQ_INSERT_TAIL(&ksqls, p, entries);
+		ksql_jmp_end();
 	}
 
 	srandom(arc4random());
@@ -235,11 +341,11 @@ ksql_alloc(const struct ksqlcfg *cfg)
 	return(p);
 }
 
-enum ksqlc 
-ksql_close(struct ksql *p)
+static enum ksqlc 
+ksql_close_inner(struct ksql *p, int onexit)
 {
 	struct ksqlstmt	*stmt;
-	char		 buf[64];
+	char		 buf[PATH_MAX];
 	enum ksqlc	 haserrs;
 	enum ksqlc	 c;
 
@@ -248,6 +354,9 @@ ksql_close(struct ksql *p)
 	/* Short-circuit. */
 	if (NULL == p || NULL == p->db)
 		return(KSQL_OK);
+
+	if (onexit)
+		ksql_err_noexit(p, KSQL_EXIT, NULL);
 
 	/* 
 	 * Finalise out all open statements first. 
@@ -288,7 +397,6 @@ ksql_close(struct ksql *p)
 	}
 
 	free(p->dbfile);
-
 	p->dbfile = NULL;
 	p->db = NULL;
 
@@ -298,8 +406,15 @@ ksql_close(struct ksql *p)
 	return(haserrs);
 }
 
-enum ksqlc
-ksql_free(struct ksql *p)
+enum ksqlc 
+ksql_close(struct ksql *p)
+{
+
+	return(ksql_close_inner(p, 0));
+}
+
+static enum ksqlc
+ksql_free_inner(struct ksql *p, int onexit)
 {
 	struct ksqlstmt	*stmt;
 	enum ksqlc	 er;
@@ -307,7 +422,7 @@ ksql_free(struct ksql *p)
 	if (NULL == p)
 		return(KSQL_OK);
 
-	er = ksql_close(p);
+	er = ksql_close_inner(p, onexit);
 	while ( ! TAILQ_EMPTY(&p->stmt_free)) {
 		stmt = TAILQ_FIRST(&p->stmt_free);
 		TAILQ_REMOVE(&p->stmt_free, stmt, entries);
@@ -316,11 +431,21 @@ ksql_free(struct ksql *p)
 		stmt = NULL;
 	}
 
-	if (KSQL_SAFE_EXIT & p->cfg.flags)
+	if (KSQL_SAFE_EXIT & p->cfg.flags) {
+		ksql_jmp_start();
 		TAILQ_REMOVE(&ksqls, p, entries);
+		ksql_jmp_end();
+	}
 
 	free(p);
 	return(er);
+}
+
+enum ksqlc
+ksql_free(struct ksql *p)
+{
+
+	return(ksql_free_inner(p, 0));
 }
 
 enum ksqlc

@@ -76,6 +76,15 @@ support; and
 which causes the library to register an
 .Xr atexit 3
 hook to free the database if it hasn't be freed prior to exit.
+The
+.Dv KSQL_SAFE_EXIT
+flag will also cause the
+.Dv SIGABRT
+and
+.Dv SIGSEGV
+signals to be caught and
+.Xr siglongjmp 3
+into an exit handler, which will then close out open databases.
 .It Va ksqlmsg err
 Supply a function that will be invoked upon a non-database error, for
 example, memory allocation.
@@ -101,13 +110,19 @@ function is invoked as
 .Fo ksqlmsg
 .Fa "void *arg"
 .Fa "enum ksqlc code"
+.Fa "const char *file"
 .Fa "const char *msg"
 .Fc ,
 with
 .Fa arg
 being the private argument,
 .Fa argc
-being the error code in question, and
+being the error code in question,
+the database
+.Fa file
+.Po which may be
+.Dv NULL Pc ,
+and
 .Fa msg
 being an ASCII string describing the error (in English).
 .Pp
@@ -126,9 +141,8 @@ which also has the
 .Fa sqlerr
 and
 .Fa sqlexterr
-SQLite error and extended error code, the database file
-.Fa file ,
-and the SQLite string error message
+SQLite error and extended error code, and and the SQLite string error
+message
 .Fa msg .
 .\" .Sh CONTEXT
 .\" For section 9 functions only.
