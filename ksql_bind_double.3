@@ -55,6 +55,12 @@ and
 functions bind data to a statement prepared with
 .Xr ksql_stmt_alloc 3 .
 They all accept the relevant column to bind, which starts at zero.
+.Pp
+.Em Note :
+in SQLite, binding occurs starting at column one.
+In these functions, for consistency with
+.Xr ksql_stmt_double 3
+and friends, it starts at zero.
 .\" .Sh CONTEXT
 .\" For section 9 functions only.
 .\" .Sh IMPLEMENTATION NOTES
@@ -76,7 +82,8 @@ on success.
 .\" For sections 1, 4, 6, 7, 8, and 9 printf/stderr messages only.
 .\" .Sh ERRORS
 .\" For sections 2, 3, 4, and 9 errno settings only.
-.\" .Sh SEE ALSO
+.Sh SEE ALSO
+.Xr sqlite3_bind_blob 3
 .\" .Xr foobar 1
 .\" .Sh STANDARDS
 .\" .Sh HISTORY
