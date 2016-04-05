@@ -1,0 +1,62 @@
+html, body				{ height: 100%;
+					  margin: 0; }
+body 					{ display: flex;
+					  flex-direction: column; 
+					  font-family: Calibri, Candara, Segoe, Segoe UI, Optima, Arial, sans-serif; 
+					  font-size: 14px;
+					  font-weight: 400;
+					  color: #ddd;
+					  background-color: #1F2321; }
+nav					{ background-color: #1A1A1A; 
+					  padding: 1em;
+					  color: #dd9400; }
+nav label				{ cursor: pointer; }
+nav label:hover,
+nav a:hover				{ color: #ffa500; }
+nav input				{ display: none; }
+nav ul					{ list-style-type: none; }
+nav .menu ul				{ max-height: 0;
+					  overflow: hidden;
+				  	  transition: max-height 0.5s ease-in-out; }
+nav .menu input:checked + ul		{ max-height: 100em; }
+nav .menu li:hover > ul 		{ max-height: 100em; }
+nav .menu 				{ display: table; 
+					  margin: 0;
+					  padding: 0; }
+nav .menu > li				{ display: table-cell;
+					  padding-left: 1em;
+					  vertical-align: middle; }
+nav .menu li				{ position: relative; }
+nav .menu li > ul			{ position: absolute;
+				 	  left: 0;
+					  padding: 0;
+					  background-color: #1A1A1A;
+					  margin: 0;
+					  top: 100%; }
+nav .menu li > ul li:hover		{ background-color: #4a4a4a; }
+nav .menu li > ul li			{ margin: 0;
+					  padding: 2pt 1.5em; }
+nav .menu li > ul li:first-child	{ margin-top: 8pt; }
+nav .menu li > ul li:last-child		{ margin-bottom: 8pt; }
+h1					{ margin: 0; 
+					  font-weight: normal;
+					  font-size: 60pt; }
+header > *				{ display: inline-block; }
+header					{ font-family: Garamond, Baskerville, Baskerville Old Face, Hoefler Text, Times New Roman, serif; 
+					  color: #aaa; 
+					  font-size: 16pt; }
+article					{ flex: 1; 
+					  font-family: Candara, Calibri, Segoe, Segoe UI, Optima, Arial, sans-serif;
+					  line-height: 18pt;
+					  font-size: 12pt;
+					  padding: 0 5%; }
+article > section			{ display: table; 
+					  height: 100%; }
+article > section > div			{ display: table-cell;
+					  vertical-align: middle; }
+a					{ text-decoration: none; 
+				 	  color: red; }
+nav a					{ color: inherit; }
+footer					{ padding: 2em;
+				 	  opacity: 0.8;
+					  text-align: center; }

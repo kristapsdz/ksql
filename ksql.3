@@ -15,62 +15,86 @@
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
 .Dd $Mdocdate$
-.Dt KSQL_STMT_STEP 3
+.Dt KSQL 3
 .Os
 .Sh NAME
-.Nm ksql_stmt_cstep ,
-.Nm ksql_stmt_step
-.Nd get the next result of a statement
+.Nm ksql
+.Nd yet another SQLite wrapper
 .Sh LIBRARY
 .Lb ksql
 .Sh SYNOPSIS
 .In ksql.h
-.Ft enum ksqlc
-.Fo ksql_stmt_step
-.Fa "struct ksql_stmt *stmt"
-.Fc
-.Ft enum ksqlc
-.Fo ksql_stmt_cstep
-.Fa "struct ksql_stmt *stmt"
-.Fc
+.Vt enum ksqlc ;
+.Vt struct ksql ;
+.Vt struct ksqlcfg ;
+.Vt struct ksqlstmt ;
 .Sh DESCRIPTION
 The
-.Nm ksql_stmt_step
-and
-.Nm ksql_stmt_cstep
-functions query the next results of a statement opened with
-.Xr ksql_stmt_open 3 .
-The two functions differ in that
-.Nm ksql_stmt_cstep
-allows constraint conditions not to return as errors.
+.Nm ksql
+library is a
+.Dq lazy man's
+wrapper of a minimal subset of the SQLite C API.
+It makes interfacing with SQLite easy and fast for you, and safe for
+your database.
 .Pp
-These functions handles a locked database (specifically,
-.Dv SQLITE_BUSY ,
-.Dv SQLITE_LOCKED ,
+The typical usage scenario is as follows:
+.Bl -enum
+.It
+allocate a handle with
+.Xr ksql_alloc 3 ;
+.It
+open a database connection on that handle with
+.Xr ksql_open 3 ;
+.It
+create statements with
+.Xr ksql_stmt_alloc 3
+and use them with
+.Xr ksql_bind_double 3 ,
+.Xr ksql_stmt_double 3 ,
+and
+.Xr ksql_stmt_free 3 ;
 or
-.Dv SQLITE_PROTOCOL )
-by sleeping for a random interval, then trying again infinitely.
+.It
+execute statements with
+.Xr ksql_exec 3 ;
+.It
+close and free with
+.Xr ksql_free 3 .
+.El
+.Pp
+There's also support for maintaining transactional consistency with
+.Xr ksql_trans_open 3
+and
+.Xr ksql_trans_commit 3 .
+Invoke
+.Dq apropos ksql 
+to see all functions.
+.Pp
+By default,
+.Nm ksql
+will trigger calls to
+.Xr exit 2
+if any of the underlying database functions fail, in which case you're
+probably screwed anyway.
+It will also register an
+.Xr atexit 3
+hook that will clean up any open database connections, so if your
+program fails while performing (say) transactions, you won't have an
+inconsistent database.
+.Pp
+To compile with
+.Nm ksql ,
+use the header file
+.In ksql.h
+and link to
+.Fl l Ns Ar ksql
+.Fl l Ns Ar sqlite3 .
+This library is not thread-safe and does not plan to be.
 .\" .Sh CONTEXT
 .\" For section 9 functions only.
 .\" .Sh IMPLEMENTATION NOTES
 .\" Not used in OpenBSD.
-.Sh RETURN VALUES
-These functions return
-.Dv KSQL_NOTOPEN
-if the database connection has not been opeend,
-.Dv KSQL_ROW
-if a row is available for examining,
-.Dv KSQL_DONE
-if no more rows are available,
-.Dv KSQL_CONSTRAINT
-if
-.Nm ksql_stmt_cstep
-was used and a constraint was violated,
-.Dv KSQL_DB
-on database errors (including constraints, if those are not explicitly
-alllowed), or
-.Dv KSQL_OK
-otherwise.
+.\" .Sh RETURN VALUES
 .\" For sections 2, 3, and 9 function return values only.
 .\" .Sh ENVIRONMENT
 .\" For sections 1, 6, 7, and 8 only.
@@ -83,7 +107,7 @@ otherwise.
 .\" .Sh ERRORS
 .\" For sections 2, 3, 4, and 9 errno settings only.
 .Sh SEE ALSO
-.Xr sqlite3_step 3
+.Xr sqlite3 3
 .\" .Xr foobar 1
 .\" .Sh STANDARDS
 .\" .Sh HISTORY

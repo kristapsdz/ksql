@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+		<meta charset="utf-8" /> 
+		<title>ksql: yet another SQLite wrapper</title>
+		<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css" />
+		<link rel="stylesheet" href="index.css" />
+	</head>
+	<body>
+		<nav>
+			<ul class="menu">
+				<li>
+					<a href="snapshots"><i class="fa fa-download fa-fw"></i> download</a>
+				</li>
+				<li>
+					<label for="drop-2"><i class="fa fa-file fa-fw"></i> docs</label>
+					<input type="checkbox" id="drop-2" />
+					<ul>
+						<li><a href="ksql.3.html">ksql(3)</a></li>
+						<li><a href="ksql_alloc.3.html">ksql_alloc(3)</a></li>
+						<li><a href="ksql_bind_double.3.html">ksql_bind_double(3)</a></li>
+						<li><a href="ksql_close.3.html">ksql_close(3)</a></li>
+						<li><a href="ksql_exec.3.html">ksql_exec(3)</a></li>
+						<li><a href="ksql_free.3.html">ksql_free(3)</a></li>
+						<li><a href="ksql_lastid.3.html">ksql_lastid(3)</a></li>
+						<li><a href="ksql_open.3.html">ksql_open(3)</a></li>
+						<li><a href="ksql_stmt_alloc.3.html">ksql_stmt_alloc(3)</a></li>
+						<li><a href="ksql_stmt_double.3.html">ksql_stmt_double(3)</a></li>
+						<li><a href="ksql_stmt_free.3.html">ksql_stmt_free(3)</a></li>
+						<li><a href="ksql_stmt_reset.3.html">ksql_stmt_reset(3)</a></li>
+						<li><a href="ksql_stmt_step.3.html">ksql_stmt_step(3)</a></li>
+						<li><a href="ksql_trans_commit.3.html">ksql_trans_commit(3)</a></li>
+						<li><a href="ksql_trans_open.3.html">ksql_trans_open(3)</a></li>
+					</ul>
+				</li>
+			</ul>
+		</nav>
+		<article>
+			<section>
+				<div>
+					<header>
+						<h1>ksql</h1>
+						<div>yet another <a href="https://www.sqlite.org">SQLite</a> wrapper</div>
+					</header>
+					<p>
+						<span class="nm">ksql</span> is a <q>lazy man's</q> wrapper for the SQLite <a
+							href="https://www.sqlite.org/c3ref/intro.html">C-language interface</a>.
+						It is written to make sure sloppy programming won't cause your SQLite database to be inconsistent (transactions and
+						statements open on exit, etc.).
+					</p>
+				</div>
+			</section>
+		</article>
+		<footer>
+			&#169; 2016, <a href="http://kristaps.bsd.lv">Kristaps Dzonsons</a>
+		</footer>
+	</body>
+</html>
