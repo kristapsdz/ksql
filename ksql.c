@@ -39,7 +39,7 @@ struct	ksql {
 	struct ksqlstmtq	 stmt_used;
 	struct ksqlstmtq	 stmt_free;
 	unsigned int		 flags;
-#define	KSQL_TRANS		 0x01 /* trans is open */
+#define	KSQLFL_TRANS		 0x01 /* trans is open */
 	TAILQ_ENTRY(ksql)	 entries;
 };
 
@@ -71,6 +71,17 @@ ksql_atexit(void)
 	}
 }
 
+static void
+ksql_err_noexit(struct ksql *p, enum ksqlc erc, const char *msg)
+{
+
+	if (NULL == msg)
+		msg = ksqlcs[erc];
+	assert(NULL != msg);
+	if (NULL != p->cfg.err)
+		p->cfg.err(p->cfg.arg, erc, msg);
+}
+
 /*
  * See ksql_dberr().
  */
@@ -78,18 +89,22 @@ static enum ksqlc
 ksql_err(struct ksql *p, enum ksqlc erc, const char *msg)
 {
 
-	if (NULL == msg)
-		msg = ksqlcs[erc];
-	assert(NULL != msg);
-
-	if (NULL != p->cfg.err)
-		p->cfg.err(p->cfg.arg, erc, msg);
-
-	/* Byeeee... */
+	ksql_err_noexit(p, erc, msg);
 	if (KSQL_EXIT_ON_ERR & p->cfg.flags)
 		exit(EXIT_FAILURE);
-
 	return(erc);
+}
+
+static void
+ksql_dberr_noexit(struct ksql *p)
+{
+
+	if (NULL != p->cfg.dberr)
+		p->cfg.dberr(p->cfg.arg, 
+			sqlite3_errcode(p->db),
+			sqlite3_extended_errcode(p->db),
+			p->dbfile,
+			sqlite3_errmsg(p->db));
 }
 
 /*
@@ -100,17 +115,9 @@ static enum ksqlc
 ksql_dberr(struct ksql *p)
 {
 
-	if (NULL != p->cfg.dberr)
-		p->cfg.dberr(p->cfg.arg, 
-			sqlite3_errcode(p->db),
-			sqlite3_extended_errcode(p->db),
-			p->dbfile,
-			sqlite3_errmsg(p->db));
-
-	/* Byeeee... */
+	ksql_dberr_noexit(p);
 	if (KSQL_EXIT_ON_ERR & p->cfg.flags)
 		exit(EXIT_FAILURE);
-
 	return(KSQL_DB);
 }
 
@@ -130,6 +137,50 @@ sqlitemsg(void *arg, enum ksqlc code, const char *msg)
 	(void)arg;
 	fprintf(stderr, "%s: %s (%d)\n", getprogname(), msg, code);
 }
+
+/*
+ * This is a way for us to sleep between connection attempts.
+ * To reduce lock contention, our sleep will be random.
+ * We use a deterministic RNG which we'll seed at initialisation.
+ */
+static void
+ksql_sleep(size_t attempt)
+{
+	useconds_t	us;
+
+	us = attempt > 100 ? 10000 :  /* 1/100 second */
+	     attempt > 10  ? 100000 : /* 1/10 second */
+	     250000;                  /* 1/4 second */
+
+	usleep(us * (double)(random() / (double)RAND_MAX));
+}
+
+static enum ksqlc
+ksql_exec_inner(struct ksql *p, const char *sql)
+{
+	size_t	attempt = 0;
+	int	rc;
+
+	if (NULL == p->db)
+		return(KSQL_NOTOPEN);
+again:
+	rc = sqlite3_exec(p->db, sql, NULL, NULL, NULL);
+
+	if (SQLITE_BUSY == rc) {
+		ksql_sleep(attempt++);
+		goto again;
+	} else if (SQLITE_LOCKED == rc) {
+		ksql_sleep(attempt++);
+		goto again;
+	} else if (SQLITE_PROTOCOL == rc) {
+		ksql_sleep(attempt++);
+		goto again;
+	} else if (SQLITE_OK == rc)
+		return(KSQL_OK);
+
+	return(KSQL_DB);
+}
+
 
 struct ksql *
 ksql_alloc(const struct ksqlcfg *cfg)
@@ -174,13 +225,14 @@ ksql_close(struct ksql *p)
 {
 	struct ksqlstmt	*stmt;
 	char		 buf[64];
-	int		 haserrs = 0;
+	enum ksqlc	 haserrs;
+	enum ksqlc	 c;
 
+	haserrs = KSQL_OK;
+
+	/* Short-circuit. */
 	if (NULL == p || NULL == p->db)
 		return(KSQL_OK);
-
-	free(p->dbfile);
-	p->dbfile = NULL;
 
 	/* 
 	 * Finalise out all open statements first. 
@@ -195,20 +247,40 @@ ksql_close(struct ksql *p)
 			"statement %zu still open", stmt->id);
 		stmt->stmt = NULL;
 		TAILQ_INSERT_TAIL(&p->stmt_free, stmt, entries);
-		haserrs = 1;
-		if (NULL != p->cfg.err)
-			p->cfg.err(p->cfg.arg, KSQL_STMT, buf);
+		haserrs = KSQL_STMT;
+		ksql_err_noexit(p, KSQL_STMT, buf);
+	}
+
+	/* 
+	 * A transaction is open on exit.
+	 * Close it and unset the notification.
+	 */
+	if (KSQLFL_TRANS & p->flags) {
+		haserrs = KSQL_TRANS;
+		p->flags &= ~KSQLFL_TRANS;
+		/* (We know we won't have KSQL_NOTOPEN.) */
+		c = ksql_exec_inner(p, "ROLLBACK TRANSACTION");
+		if (KSQL_DB == c) {
+			ksql_dberr_noexit(p);
+			haserrs = KSQL_DB;
+		}
 	}
 
 	/* Now try to close the database itself. */
-	if (SQLITE_OK != sqlite3_close(p->db))
-		return(ksql_dberr(p));
+	if (SQLITE_OK != sqlite3_close(p->db)) {
+		ksql_dberr_noexit(p);
+		haserrs = KSQL_DB;
+	}
+
+	free(p->dbfile);
+
+	p->dbfile = NULL;
 	p->db = NULL;
 
-	/* Here we remember if we had statement errors. */
-	return(haserrs ? 
-		ksql_err(p, KSQL_STMT, NULL) :
-		KSQL_OK);
+	/* Delay our exit check til now. */
+	if (haserrs && KSQL_EXIT_ON_ERR & p->cfg.flags)
+		exit(EXIT_FAILURE);
+	return(haserrs);
 }
 
 enum ksqlc
@@ -236,49 +308,20 @@ ksql_free(struct ksql *p)
 	return(er);
 }
 
-/*
- * This is a way for us to sleep between connection attempts.
- * To reduce lock contention, our sleep will be random.
- * We use a deterministic RNG which we'll seed at initialisation.
- */
-static void
-ksql_sleep(size_t attempt)
-{
-	useconds_t	us;
-
-	us = attempt > 100 ? 10000 :  /* 1/100 second */
-	     attempt > 10  ? 100000 : /* 1/10 second */
-	     250000;                  /* 1/4 second */
-
-	usleep(us * (double)(random() / (double)RAND_MAX));
-}
-
 enum ksqlc
 ksql_exec(struct ksql *p, const char *sql, size_t id)
 {
-	size_t	attempt = 0;
-	int	rc;
+	enum ksqlc	c;
 
 	(void)id; /* FOR NOW */
 
-	if (NULL == p->db)
-		return(ksql_err(p, KSQL_NOTOPEN, NULL));
-again:
-	rc = sqlite3_exec(p->db, sql, NULL, NULL, NULL);
+	c = ksql_exec_inner(p, sql);
+	if (KSQL_DB == c)
+		return(ksql_dberr(p));
+	else if (KSQL_NOTOPEN == c)
+		return(ksql_err(p, c, NULL));
 
-	if (SQLITE_BUSY == rc) {
-		ksql_sleep(attempt++);
-		goto again;
-	} else if (SQLITE_LOCKED == rc) {
-		ksql_sleep(attempt++);
-		goto again;
-	} else if (SQLITE_PROTOCOL == rc) {
-		ksql_sleep(attempt++);
-		goto again;
-	} else if (SQLITE_OK == rc)
-		return(KSQL_OK);
-
-	return(ksql_dberr(p));
+	return(KSQL_OK);
 }
 
 enum ksqlc
@@ -498,18 +541,40 @@ ksql_bind_int(struct ksqlstmt *stmt, size_t pos, int64_t val)
 }
 
 static enum ksqlc
-ksql_trans_open_inner(struct ksql *p, int immediate)
+ksql_trans_close_inner(struct ksql *p, int rollback)
 {
+	enum ksqlc	 c;
 
 	if (NULL == p->db) 
 		return(ksql_err(p, KSQL_NOTOPEN, NULL));
-	if (KSQL_TRANS & p->flags) 
+	if ( ! (KSQLFL_TRANS & p->flags))
+		return(KSQL_TRANS);
+	c = rollback ?
+		ksql_exec(p, "ROLLBACK TRANSACTION", SIZE_MAX) :
+		ksql_exec(p, "COMMIT TRANSACTION", SIZE_MAX);
+	/* Set this only if the exec succeeded.*/
+	if (KSQL_OK == c)
+		p->flags &= ~KSQLFL_TRANS;
+	return(c);
+}
+
+static enum ksqlc
+ksql_trans_open_inner(struct ksql *p, int immediate)
+{
+	enum ksqlc	 c;
+
+	if (NULL == p->db) 
+		return(ksql_err(p, KSQL_NOTOPEN, NULL));
+	if (KSQLFL_TRANS & p->flags) 
 		return(KSQL_TRANS);
 
-	p->flags |= KSQL_TRANS;
-	return(immediate ? 
+	c = immediate ? 
 		ksql_exec(p, "BEGIN IMMEDIATE", SIZE_MAX) : 
-		ksql_exec(p, "BEGIN TRANSACTION", SIZE_MAX));
+		ksql_exec(p, "BEGIN TRANSACTION", SIZE_MAX);
+	/* Set this only if the exec succeeded.*/
+	if (KSQL_OK == c)
+		p->flags |= KSQLFL_TRANS;
+	return(c);
 }
 
 enum ksqlc
@@ -530,22 +595,14 @@ enum ksqlc
 ksql_trans_commit(struct ksql *p)
 {
 
-	if (NULL == p->db) 
-		return(ksql_err(p, KSQL_NOTOPEN, NULL));
-	if ( ! (KSQL_TRANS & p->flags))
-		return(KSQL_TRANS);
-	return(ksql_exec(p, "COMMIT TRANSACTION", SIZE_MAX));
+	return(ksql_trans_close_inner(p, 0));
 }
 
 enum ksqlc
 ksql_trans_rollback(struct ksql *p)
 {
 
-	if (NULL == p->db) 
-		return(ksql_err(p, KSQL_NOTOPEN, NULL));
-	if ( ! (KSQL_TRANS & p->flags))
-		return(KSQL_TRANS);
-	return(ksql_exec(p, "ROLLBACK TRANSACTION", SIZE_MAX));
+	return(ksql_trans_close_inner(p, 1));
 }
 
 enum ksqlc

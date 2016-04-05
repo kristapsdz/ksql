@@ -26,10 +26,19 @@ this function is a no-op.
 This function will begin by calling
 .Xr sqlite3_finalize 3
 on all active statements (it is an error to have any open connections),
+then it will roll back any open transactions (also triggering an error)
+if found,
 then it will close out the database itself with
 .Xr sqlite3_close 3 .
 In the event of statements still being open, all statements are
 finalised and the database closed prior to calling the error handler.
+If
+.Dv KSQL_FAIL_ON_EXIT
+was specified on
+.Fa sql ,
+the
+.Xr exit 2
+will only be invoked after all resources have been closed and freed.
 .\" .Sh CONTEXT
 .\" For section 9 functions only.
 .\" .Sh IMPLEMENTATION NOTES
@@ -38,11 +47,15 @@ finalised and the database closed prior to calling the error handler.
 This returns
 .Dv KSQL_STMT
 if there were open statements,
+.Dv KSQL_TRANS
+if there was an open transaction
+(if there were both open statements and a transaction, this is
+returned),
 .Dv KSQL_DB
-if there were database-level errors, or
+if there were database-level errors (this overrides whether there were
+open transactions and/or a transaction), or
 .Dv KSQL_OK
 on success.
-.Xr ksql_close 3 .
 .\" For sections 2, 3, and 9 function return values only.
 .\" .Sh ENVIRONMENT
 .\" For sections 1, 6, 7, and 8 only.

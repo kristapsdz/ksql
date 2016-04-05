@@ -50,19 +50,18 @@ enum ksqlc	 ksql_lastid(struct ksql *, int64_t *);
 enum ksqlc	 ksql_open(struct ksql *, const char *);
 enum ksqlc	 ksql_stmt_alloc(struct ksql *, 
 			struct ksqlstmt **, const char *, size_t);
+const void	*ksql_stmt_blob(struct ksqlstmt *, size_t);
+size_t		 ksql_stmt_bytes(struct ksqlstmt *, size_t);
 enum ksqlc	 ksql_stmt_cstep(struct ksqlstmt *);
 double		 ksql_stmt_double(struct ksqlstmt *, size_t);
 void		 ksql_stmt_free(struct ksqlstmt *);
 int64_t		 ksql_stmt_int(struct ksqlstmt *, size_t);
-const void	*ksql_stmt_blob(struct ksqlstmt *, size_t);
-size_t		 ksql_stmt_bytes(struct ksqlstmt *, size_t);
 void		 ksql_stmt_reset(struct ksqlstmt *);
 enum ksqlc	 ksql_stmt_step(struct ksqlstmt *);
 char		*ksql_stmt_str(struct ksqlstmt *, size_t);
-
+enum ksqlc	 ksql_trans_commit(struct ksql *);
 enum ksqlc	 ksql_trans_exclopen(struct ksql *);
 enum ksqlc	 ksql_trans_open(struct ksql *);
-enum ksqlc	 ksql_trans_commit(struct ksql *);
 enum ksqlc	 ksql_trans_rollback(struct ksql *);
 
 __END_DECLS
