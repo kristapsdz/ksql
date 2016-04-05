@@ -60,3 +60,7 @@ nav a					{ color: inherit; }
 footer					{ padding: 2em;
 				 	  opacity: 0.8;
 					  text-align: center; }
+@media only screen and (max-width: 760px), only screen and (max-device-width: 760px) {
+h1					{ font-size: 32pt; }
+footer					{ padding: 1em; }
+}
