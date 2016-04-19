@@ -71,5 +71,7 @@ clean:
 .3.3.html:
 	mandoc -Thtml $< >$@
 
+index.html: versions.xml
+
 .xml.html:
-	cp -f $< $@
+	sblg -t $< -o $@ versions.xml

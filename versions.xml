@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<articles>
+	<article data-sblg-article="1" data-sblg-tags="version">
+		<header>
+			<h1>0.0.6</h1>
+			<address>Kristaps Dzonsons</address>
+			<time datetime="2016-04-19">2016-04-19</time>
+		</header>
+		<aside>
+			<p>
+				Add identifiers to transaction functions and check call symmetry.
+				Proper reporting of open transactions on close.
+				Allow compilation on Linux.
+			</p>
+		</aside>
+	</article>
+</articles>
