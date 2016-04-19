@@ -76,10 +76,10 @@ int64_t		 ksql_stmt_int(struct ksqlstmt *, size_t);
 void		 ksql_stmt_reset(struct ksqlstmt *);
 enum ksqlc	 ksql_stmt_step(struct ksqlstmt *);
 char		*ksql_stmt_str(struct ksqlstmt *, size_t);
-enum ksqlc	 ksql_trans_commit(struct ksql *);
-enum ksqlc	 ksql_trans_exclopen(struct ksql *);
-enum ksqlc	 ksql_trans_open(struct ksql *);
-enum ksqlc	 ksql_trans_rollback(struct ksql *);
+enum ksqlc	 ksql_trans_commit(struct ksql *, size_t);
+enum ksqlc	 ksql_trans_exclopen(struct ksql *, size_t);
+enum ksqlc	 ksql_trans_open(struct ksql *, size_t);
+enum ksqlc	 ksql_trans_rollback(struct ksql *, size_t);
 
 __END_DECLS
 

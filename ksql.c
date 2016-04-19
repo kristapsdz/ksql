@@ -74,9 +74,10 @@ struct	ksqlstmt {
 struct	ksql {
 	struct ksqlcfg	 	 cfg;
 	sqlite3			*db;
-	char			*dbfile;
-	struct ksqlstmtq	 stmt_used;
-	struct ksqlstmtq	 stmt_free;
+	char			*dbfile; /* fname of db */
+	struct ksqlstmtq	 stmt_used; /* used list */
+	struct ksqlstmtq	 stmt_free; /* free list */
+	size_t			 trans; /* current transactions */
 	unsigned int		 flags;
 #define	KSQLFL_TRANS		 0x01 /* trans is open */
 	TAILQ_ENTRY(ksql)	 entries;
@@ -380,6 +381,9 @@ ksql_close_inner(struct ksql *p, int onexit)
 	 * Close it and unset the notification.
 	 */
 	if (KSQLFL_TRANS & p->flags) {
+		snprintf(buf, sizeof(buf),
+			"transaction %zu still open", p->trans);
+		ksql_err_noexit(p, KSQL_TRANS, buf);
 		haserrs = KSQL_TRANS;
 		p->flags &= ~KSQLFL_TRANS;
 		/* (We know we won't have KSQL_NOTOPEN.) */
@@ -681,68 +685,89 @@ ksql_bind_int(struct ksqlstmt *stmt, size_t pos, int64_t val)
 }
 
 static enum ksqlc
-ksql_trans_close_inner(struct ksql *p, int rollback)
+ksql_trans_close_inner(struct ksql *p, int rollback, size_t id)
 {
 	enum ksqlc	 c;
+	char	 	 buf[1024];
 
 	if (NULL == p->db) 
 		return(ksql_err(p, KSQL_NOTOPEN, NULL));
-	if ( ! (KSQLFL_TRANS & p->flags))
-		return(KSQL_TRANS);
+
+	if ( ! (KSQLFL_TRANS & p->flags)) {
+		snprintf(buf, sizeof(buf),
+			"transaction %zu not open", id);
+		return(ksql_err(p, KSQL_TRANS, buf));
+	} else if (id != p->trans) {
+		snprintf(buf, sizeof(buf),
+			"transaction %zu pending on close of %zu", 
+			p->trans, id);
+		return(ksql_err(p, KSQL_TRANS, buf));
+	}
+
 	c = rollback ?
 		ksql_exec(p, "ROLLBACK TRANSACTION", SIZE_MAX) :
 		ksql_exec(p, "COMMIT TRANSACTION", SIZE_MAX);
+
 	/* Set this only if the exec succeeded.*/
 	if (KSQL_OK == c)
 		p->flags &= ~KSQLFL_TRANS;
+
 	return(c);
 }
 
 static enum ksqlc
-ksql_trans_open_inner(struct ksql *p, int immediate)
+ksql_trans_open_inner(struct ksql *p, int immediate, size_t id)
 {
 	enum ksqlc	 c;
+	char		 buf[1024];
 
 	if (NULL == p->db) 
 		return(ksql_err(p, KSQL_NOTOPEN, NULL));
-	if (KSQLFL_TRANS & p->flags) 
-		return(KSQL_TRANS);
+
+	if (KSQLFL_TRANS & p->flags) {
+		snprintf(buf, sizeof(buf),
+			"transaction %zu still open", p->trans);
+		return(ksql_err(p, KSQL_TRANS, buf));
+	}
 
 	c = immediate ? 
 		ksql_exec(p, "BEGIN IMMEDIATE", SIZE_MAX) : 
 		ksql_exec(p, "BEGIN TRANSACTION", SIZE_MAX);
+
 	/* Set this only if the exec succeeded.*/
-	if (KSQL_OK == c)
+	if (KSQL_OK == c) {
 		p->flags |= KSQLFL_TRANS;
+		p->trans = id;
+	}
 	return(c);
 }
 
 enum ksqlc
-ksql_trans_open(struct ksql *p)
+ksql_trans_open(struct ksql *p, size_t id)
 {
 
-	return(ksql_trans_open_inner(p, 0));
+	return(ksql_trans_open_inner(p, 0, id));
 }
 
 enum ksqlc
-ksql_trans_exclopen(struct ksql *p)
+ksql_trans_exclopen(struct ksql *p, size_t id)
 {
 
-	return(ksql_trans_open_inner(p, 1));
+	return(ksql_trans_open_inner(p, 1, id));
 }
 
 enum ksqlc
-ksql_trans_commit(struct ksql *p)
+ksql_trans_commit(struct ksql *p, size_t id)
 {
 
-	return(ksql_trans_close_inner(p, 0));
+	return(ksql_trans_close_inner(p, 0, id));
 }
 
 enum ksqlc
-ksql_trans_rollback(struct ksql *p)
+ksql_trans_rollback(struct ksql *p, size_t id)
 {
 
-	return(ksql_trans_close_inner(p, 1));
+	return(ksql_trans_close_inner(p, 1, id));
 }
 
 enum ksqlc
