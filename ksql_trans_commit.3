@@ -28,10 +28,12 @@
 .Ft enum ksqlc
 .Fo ksql_trans_commit
 .Fa "struct ksql *sql"
+.Fa "size_t id"
 .Fc
 .Ft enum ksqlc
 .Fo ksql_trans_rollback
 .Fa "struct ksql *sql"
+.Fa "size_t id"
 .Fc
 .Sh DESCRIPTION
 The
@@ -43,6 +45,10 @@ functions commit or roll-back active database transactions as opened with
 It is an error to try to close a transaction that has not been opened.
 This follows the same underlying execution logic of
 .Xr ksql_exec 3 .
+The
+.Fa id
+value is used in reporting errors and making sure that transaction calls
+are symmetric.
 .\" .Sh CONTEXT
 .\" For section 9 functions only.
 .\" .Sh IMPLEMENTATION NOTES

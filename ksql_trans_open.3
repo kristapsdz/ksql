@@ -28,10 +28,12 @@
 .Ft enum ksqlc
 .Fo ksql_trans_exclopen
 .Fa "struct ksql *sql"
+.Fa "size_t id"
 .Fc
 .Ft enum ksqlc
 .Fo ksql_trans_open
 .Fa "struct ksql *sql"
+.Fa "size_t id"
 .Fc
 .Sh DESCRIPTION
 The
@@ -42,8 +44,14 @@ functions open an exclusive
 .Pq Dq immediate
 or regular transaction, respectively.
 Recursive transactions are disallowed.
+The
+.Fa id
+value is used in error reporting and in making sure that transaction
+calls are symmetric.
 This follows the same underlying execution logic of
 .Xr ksql_exec 3 .
+They must be followed by
+.Xr ksql_trans_commit 3 .
 .\" .Sh CONTEXT
 .\" For section 9 functions only.
 .\" .Sh IMPLEMENTATION NOTES
