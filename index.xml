@@ -52,7 +52,7 @@
 						It is written to make sure sloppy programming won't cause your SQLite database to be inconsistent (transactions and
 						statements open on exit and certain signals).
 						Specifically, it exits on any database errors; and upon exit (or signal), cleans up open statements, transactions, and databases.
-						See <a href="kcgi.3.html">kcgi(3)</a> and friends for details.
+						See <a href="ksql.3.html">kcgi(3)</a> and friends for details.
 						It runs on OpenBSD, Linux, and Mac OS X.
 					</p>
 					<nav data-sblg-nav="1" data-sblg-navsz="1" data-sblg-navcontent="1">
