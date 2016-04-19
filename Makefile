@@ -1,7 +1,7 @@
 .SUFFIXES: .3 .3.html .html .xml
 
 PREFIX	?= /usr/local
-VERSION	 = 0.0.5
+VERSION	 = 0.0.6
 CFLAGS	+= -g -W -Wall
 BUILT	 = index.css
 HTMLS	 = index.html \
