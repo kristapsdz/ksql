@@ -93,6 +93,9 @@ and link to
 .Fl l Ns Ar ksql
 .Fl l Ns Ar sqlite3 .
 This library is not thread-safe and does not plan to be.
+If you're using Linux, you'll also need to link
+.Fl l Ns Ar bsd ,
+which is used for some minor purposes.
 .\" .Sh CONTEXT
 .\" For section 9 functions only.
 .\" .Sh IMPLEMENTATION NOTES
