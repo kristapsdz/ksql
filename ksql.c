@@ -176,8 +176,8 @@ ksql_dberr(struct ksql *p)
 	return(KSQL_DB);
 }
 
-static void
-sqlitedbmsg(void *arg, int sql3, int esql3, const char *file, const char *msg)
+void
+ksqlitedbmsg(void *arg, int sql3, int esql3, const char *file, const char *msg)
 {
 
 	(void)arg;
@@ -185,8 +185,8 @@ sqlitedbmsg(void *arg, int sql3, int esql3, const char *file, const char *msg)
 		getprogname(), file, msg, sql3, esql3);
 }
 
-static void
-sqlitemsg(void *arg, enum ksqlc code, const char *file, const char *msg)
+void
+ksqlitemsg(void *arg, enum ksqlc code, const char *file, const char *msg)
 {
 
 	(void)arg;
@@ -304,8 +304,8 @@ ksql_alloc(const struct ksqlcfg *cfg)
 		 * errors to stderr and make us bail on exit, as well
 		 * trying to catch signals/exits.
 		 */
-		p->cfg.dberr = sqlitedbmsg;
-		p->cfg.err = sqlitemsg;
+		p->cfg.dberr = ksqlitedbmsg;
+		p->cfg.err = ksqlitemsg;
 		p->cfg.flags = KSQL_EXIT_ON_ERR | KSQL_SAFE_EXIT;
 	} else
 		p->cfg = *cfg;
