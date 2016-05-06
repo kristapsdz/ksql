@@ -14,4 +14,17 @@
 			</p>
 		</aside>
 	</article>
+	<article data-sblg-article="1" data-sblg-tags="version">
+		<header>
+			<h1>0.0.7</h1>
+			<address>Kristaps Dzonsons</address>
+			<time datetime="2016-05-06">2016-05-06</time>
+		</header>
+		<aside>
+			<p>
+				Export the two functions used for default logging.
+				This allows one to start with default values and modify them afterward.
+			</p>
+		</aside>
+	</article>
 </articles>
