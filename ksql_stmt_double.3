@@ -19,8 +19,10 @@
 .Os
 .Sh NAME
 .Nm ksql_stmt_blob ,
+.Nm ksql_stmt_bytes ,
 .Nm ksql_stmt_double ,
 .Nm ksql_stmt_int ,
+.Nm ksql_stmt_isnull ,
 .Nm ksql_stmt_str
 .Nd get the result columns of a statement
 .Sh LIBRARY
@@ -44,6 +46,11 @@
 .Fc
 .Ft int64_t
 .Fo ksql_stmt_int
+.Fa "struct ksql_stmt *stmt"
+.Fa "size_t col"
+.Fc
+.Ft int
+.Fo ksql_stmt_isnull
 .Fa "struct ksql_stmt *stmt"
 .Fa "size_t col"
 .Fc
@@ -76,6 +83,11 @@ The
 returns a string whose memory is
 .Dq owned
 by the database, so it should be copied before modification.
+.Pp
+The
+.Nm ksql_stmt_isnull
+function checks if the result column is empty, i.e.,
+.Dv SQLITE_NULL .
 .\" .Sh CONTEXT
 .\" For section 9 functions only.
 .\" .Sh IMPLEMENTATION NOTES

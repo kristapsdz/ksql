@@ -73,6 +73,7 @@ enum ksqlc	 ksql_stmt_cstep(struct ksqlstmt *);
 double		 ksql_stmt_double(struct ksqlstmt *, size_t);
 void		 ksql_stmt_free(struct ksqlstmt *);
 int64_t		 ksql_stmt_int(struct ksqlstmt *, size_t);
+int		 ksql_stmt_isnull(struct ksqlstmt *, size_t);
 void		 ksql_stmt_reset(struct ksqlstmt *);
 enum ksqlc	 ksql_stmt_step(struct ksqlstmt *);
 char		*ksql_stmt_str(struct ksqlstmt *, size_t);

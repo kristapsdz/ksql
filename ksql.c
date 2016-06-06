@@ -805,6 +805,13 @@ ksql_stmt_double(struct ksqlstmt *stmt, size_t col)
 	return(sqlite3_column_double(stmt->stmt, (int)col));
 }
 
+int
+ksql_stmt_isnull(struct ksqlstmt *stmt, size_t col)
+{
+
+	return(SQLITE_NULL == sqlite3_column_type(stmt->stmt, (int)col));
+}
+
 int64_t
 ksql_stmt_int(struct ksqlstmt *stmt, size_t col)
 {
