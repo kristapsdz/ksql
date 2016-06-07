@@ -36,6 +36,7 @@
 		<aside>
 			<p>
 				Add a function that checks if the result column is unset (NULL).
+				Fix a small documentation bug or two.
 			</p>
 		</aside>
 	</article>
