@@ -1,9 +1,10 @@
 .SUFFIXES: .3 .3.html .html .xml
 
 PREFIX	?= /usr/local
-VERSION	 = 0.0.8
+VERSION	 = 0.0.9
 CFLAGS	+= -g -W -Wall
-BUILT	 = index.css
+BUILT	 = index.css \
+	   mandoc.css
 HTMLS	 = index.html \
 	   ksql.3.html \
 	   ksql_alloc.3.html \
@@ -69,7 +70,7 @@ clean:
 	rm -f libksql.a ksql.o $(HTMLS) ksql.tar.gz
 
 .3.3.html:
-	mandoc -Thtml $< >$@
+	mandoc -Ostyle=mandoc.css -Oman=http://man.openbsd.org/%N.%S -Thtml $< >$@
 
 index.html: versions.xml
 

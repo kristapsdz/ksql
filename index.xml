@@ -55,7 +55,7 @@
 						See <a href="ksql.3.html">ksql(3)</a> and friends for details.
 						It runs on OpenBSD, Linux, and Mac OS X.
 					</p>
-					<nav data-sblg-nav="1" data-sblg-navsz="1" data-sblg-navcontent="1">
+					<nav data-sblg-nav="1" data-sblg-navsz="2" data-sblg-navcontent="1">
 						<div>
 							Version <span class="version">${sblg-title}</span> 
 							(<time datetime="${sblg-date}">${sblg-date}</time>)

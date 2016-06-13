@@ -40,4 +40,16 @@
 			</p>
 		</aside>
 	</article>
+	<article data-sblg-article="1" data-sblg-tags="version">
+		<header>
+			<h1>0.0.9</h1>
+			<address>Kristaps Dzonsons</address>
+			<time datetime="2016-06-11">2016-06-11</time>
+		</header>
+		<aside>
+			<p>
+				Set manpage CSS file.  No functional or documentation change.
+			</p>
+		</aside>
+	</article>
 </articles>
