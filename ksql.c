@@ -23,6 +23,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <inttypes.h> /* XXX: debugging */
 #include <poll.h>
 #include <setjmp.h>
 #include <signal.h>
@@ -75,6 +76,7 @@ struct	ksqlstmt {
 	sqlite3_stmt		*stmt; /* statement */
 	size_t			 id; /* its identifier */
 	struct ksql		*sql; /* corresponding db */
+	void			*ptr; /* daemon mode pointer */
 	TAILQ_ENTRY(ksqlstmt) 	 entries;
 };
 
@@ -142,6 +144,10 @@ enum	ksqlop {
 	KSQLOP_BIND_TEXT, /* ksql_bind_text */  
 	KSQLOP_BIND_ZBLOB, /* ksql_bind_zblob */
 	KSQLOP_CLOSE, /* ksql_close */
+	KSQLOP_COL_BYTES, /* ksql_stmt_bytes */
+	KSQLOP_COL_DOUBLE, /* ksql_stmt_double */
+	KSQLOP_COL_INT, /* ksql_stmt_int */
+	KSQLOP_COL_ISNULL, /* ksql_stmt_isnull */
 	KSQLOP_OPEN, /* ksql_open */
 	KSQLOP_STMT_ALLOC, /* ksql_stmt_alloc */
 	KSQLOP_STMT_FREE, /* ksql_stmt_free */
@@ -149,6 +155,28 @@ enum	ksqlop {
 	KSQLOP_STMT_STEP, /* ksql_stmt_step */
 };
 
+static	const char *const ksqlops[] = {
+	"BIND_BLOB", /* KSQLOP_BIND_BLOB */
+	"BIND_DOUBLE", /* KSQLOP_BIND_DOUBLE */
+	"BIND_INT", /* KSQLOP_BIND_INT */
+	"BIND_NULL", /* KSQLOP_BIND_NULL */
+	"BIND_TEXT", /* KSQLOP_BIND_TEXT */
+	"BIND_ZBLOB", /* KSQLOP_BIND_ZBLOB */
+	"CLOSE", /* KSQLOP_CLOSE */
+	"COL_BYTES", /* KSQLOP_COL_BYTES */
+	"COL_DOUBLE", /* KSQLOP_COL_DOUBLE */
+	"COL_INT", /* KSQLOP_COL_INT */
+	"COL_ISNULL", /* KSQLOP_COL_ISNULL */
+	"OPEN", /* KSQLOP_OPEN */
+	"STMT_ALLOC", /* KSQLOP_STMT_ALLOC */
+	"STMT_FREE", /* KSQLOP_STMT_FREE */
+	"STMT_RESET", /* KSQLOP_STMT_RESET */
+	"STMT_STEP", /* KSQLOP_STMT_STEP */
+};
+
+/*
+ * Forward declarations.
+ */
 static enum ksqlc ksql_free_inner(struct ksql *, int);
 static enum ksqlc ksql_step_inner(struct ksqlstmt *, size_t);
 
@@ -642,7 +670,7 @@ ksql_writebound(struct ksqlstmt *ss, enum ksqlop op,
 
 	if (KSQL_OK != (c = ksql_writeop(ss->sql, op)))
 		return(c);
-	if (KSQL_OK != (c = ksql_writeptr(ss->sql, ss)))
+	if (KSQL_OK != (c = ksql_writeptr(ss->sql, ss->ptr)))
 		return(c);
 	if (KSQL_OK != (c = ksql_writepos(ss->sql, pos)))
 		return(c);
@@ -673,7 +701,6 @@ ksqlsrv_close(struct ksql *p)
 {
 
 	warnx(__func__);
-
 	return(ksql_writecode(p, ksql_close(p)));
 }
 
@@ -706,9 +733,9 @@ ksqlsrv_bind(struct ksql *p, enum ksqlop op)
 	struct ksqlstmt	*ss;
 	size_t		 bufsz;
 
-	if (KSQL_OK != (c = ksql_readpos(p, &pos)))
-		return(c);
 	if (KSQL_OK != (c = ksql_readptr(p, &ss)))
+		return(c);
+	if (KSQL_OK != (c = ksql_readpos(p, &pos)))
 		return(c);
 
 	if (KSQLOP_BIND_TEXT == op) {
@@ -726,7 +753,7 @@ ksqlsrv_bind(struct ksql *p, enum ksqlop op)
 			buf = strerror(errno);
 			return(ksql_err(p, KSQL_MEM, buf));
 		}
-		c = ksql_readbuf(p, &buf, bufsz, 0);
+		c = ksql_readbuf(p, buf, bufsz, 0);
 		if (KSQL_OK != c) {
 			free(buf);
 			return(c);
@@ -828,9 +855,76 @@ ksqlsrv_stmt_free(struct ksql *p)
 	if (KSQL_OK != (c = ksql_readptr(p, &ss)))
 		return(c);
 
+	warnx("%s: %p", __func__, ss);
+
 	/* Return code form ksql_stmt_free always KSQL_OK */
 
 	return(ksql_stmt_free(ss));
+}
+
+static enum ksqlc
+ksqlsrv_stmt_bytes(struct ksql *p)
+{
+	enum ksqlc	 c;
+	struct ksqlstmt	*stmt;
+	size_t		 col;
+	size_t		 val;
+
+	if (KSQL_OK != (c = ksql_readptr(p, &stmt)))
+		return(c);
+	if (KSQL_OK != (c = ksql_readpos(p, &col)))
+		return(c);
+	val = ksql_stmt_double(stmt, col);
+	return(ksql_writebuf(p, &val, sizeof(size_t)));
+}
+
+static enum ksqlc
+ksqlsrv_stmt_double(struct ksql *p)
+{
+	enum ksqlc	 c;
+	struct ksqlstmt	*stmt;
+	size_t		 col;
+	double		 val;
+
+	if (KSQL_OK != (c = ksql_readptr(p, &stmt)))
+		return(c);
+	if (KSQL_OK != (c = ksql_readpos(p, &col)))
+		return(c);
+	val = ksql_stmt_double(stmt, col);
+	return(ksql_writebuf(p, &val, sizeof(double)));
+}
+
+static enum ksqlc
+ksqlsrv_stmt_isnull(struct ksql *p)
+{
+	enum ksqlc	 c;
+	struct ksqlstmt	*stmt;
+	size_t		 col;
+	int		 val;
+
+	if (KSQL_OK != (c = ksql_readptr(p, &stmt)))
+		return(c);
+	if (KSQL_OK != (c = ksql_readpos(p, &col)))
+		return(c);
+	val = ksql_stmt_isnull(stmt, col);
+	return(ksql_writebuf(p, &val, sizeof(int)));
+}
+
+
+static enum ksqlc
+ksqlsrv_stmt_int(struct ksql *p)
+{
+	enum ksqlc	 c;
+	struct ksqlstmt	*stmt;
+	size_t		 col;
+	int64_t		 val;
+
+	if (KSQL_OK != (c = ksql_readptr(p, &stmt)))
+		return(c);
+	if (KSQL_OK != (c = ksql_readpos(p, &col)))
+		return(c);
+	val = ksql_stmt_int(stmt, col);
+	return(ksql_writebuf(p, &val, sizeof(int64_t)));
 }
 
 struct ksql *
@@ -911,13 +1005,12 @@ ksql_alloc_secure(const struct ksqlcfg *cfg,
 	c = KSQL_OK;
 
 	while (KSQL_OK == c) {
-		warnx("%s: child: polling", __func__);
 		if (KSQL_EOF == (c = ksql_readop(p, &op))) {
 			warnx("%s: child exiting", __func__);
 			break;
 		} else if (KSQL_OK != c)
 			break;
-		warnx("%s: child: polled!", __func__);
+		warnx("%s: child: %s", __func__, ksqlops[op]);
 		switch (op) {
 		case (KSQLOP_BIND_DOUBLE):
 		case (KSQLOP_BIND_INT):
@@ -926,6 +1019,18 @@ ksql_alloc_secure(const struct ksqlcfg *cfg,
 			break;
 		case (KSQLOP_CLOSE):
 			c = ksqlsrv_close(p);
+			break;
+		case (KSQLOP_COL_BYTES):
+			c = ksqlsrv_stmt_bytes(p);
+			break;
+		case (KSQLOP_COL_DOUBLE):
+			c = ksqlsrv_stmt_double(p);
+			break;
+		case (KSQLOP_COL_INT):
+			c = ksqlsrv_stmt_int(p);
+			break;
+		case (KSQLOP_COL_ISNULL):
+			c = ksqlsrv_stmt_isnull(p);
 			break;
 		case (KSQLOP_OPEN):
 			c = ksqlsrv_open(p);
@@ -1085,6 +1190,8 @@ ksql_close(struct ksql *p)
 {
 	enum ksqlc	 c, cc;
 
+	warnx(__func__);
+
 	if (KSQLSRV_ISPARENT(p)) {
 		if (KSQL_OK != (c = ksql_writeop(p, KSQLOP_CLOSE)))
 			return(c);
@@ -1234,7 +1341,7 @@ ksql_step_inner(struct ksqlstmt *stmt, size_t cstr)
 		c = ksql_writeop(stmt->sql, KSQLOP_STMT_STEP);
 		if (KSQL_OK != c)
 			return(c);
-		c = ksql_writeptr(stmt->sql, stmt);
+		c = ksql_writeptr(stmt->sql, stmt->ptr);
 		if (KSQL_OK != c)
 			return(c);
 		c = ksql_writepos(stmt->sql, cstr);
@@ -1280,7 +1387,7 @@ ksql_stmt_reset(struct ksqlstmt *stmt)
 		c = ksql_writeop(stmt->sql, KSQLOP_STMT_RESET);
 		if (KSQL_OK != c)
 			return(c);
-		return(ksql_writeptr(stmt->sql, stmt));
+		return(ksql_writeptr(stmt->sql, stmt->ptr));
 	}
 
 	/* FIXME: error code from reset? */
@@ -1313,12 +1420,19 @@ ksql_stmt_free(struct ksqlstmt *stmt)
 
 	if (KSQLSRV_ISPARENT(stmt->sql)) {
 		c = ksql_writeop(stmt->sql, KSQLOP_STMT_FREE);
-		if (KSQL_OK != c)
+		if (KSQL_OK != c) {
+			free(stmt);
 			return(c);
-		return(ksql_writeptr(stmt->sql, stmt));
+		}
+		warnx("%s: wrote: %p", __func__, stmt->ptr);
+		c = ksql_writeptr(stmt->sql, stmt->ptr);
+		free(stmt);
+		return(c);
 	}
 
 	/* FIXME: error code from finalise? */
+
+	warnx("%s: finalising: %p", __func__, stmt);
 
 	sqlite3_finalize(stmt->stmt);
 	stmt->stmt = NULL;
@@ -1352,7 +1466,14 @@ ksql_stmt_alloc(struct ksql *p,
 			return(c);
 		if (KSQL_OK != cc)
 			return(cc);
-		return(ksql_readptr(p, stmt));
+		if (KSQL_OK != (c = ksql_readptr(p, &ss)))
+			return(c);
+		assert(NULL != ss);
+		*stmt = calloc(1, sizeof(struct ksqlstmt));
+		(*stmt)->sql = p;
+		(*stmt)->ptr = ss;
+		warnx("%s: %p", __func__, ss);
+		return(cc);
 	}
 
 	/*
@@ -1478,7 +1599,6 @@ ksql_bind_int(struct ksqlstmt *stmt, size_t pos, int64_t val)
 		return(ksql_writebound(stmt, 
 			KSQLOP_BIND_INT, pos, 
 			&val, sizeof(int64_t)));
-
 	if (SQLITE_OK == sqlite3_bind_int64(stmt->stmt, pos + 1, val))
 		return(KSQL_OK);
 	return(ksql_dberr(stmt->sql));
@@ -1581,6 +1701,31 @@ ksql_lastid(struct ksql *p, int64_t *id)
 	return(KSQL_OK);
 }
 
+/*
+ * Write the full message required for a ksql_stmt_xxx function when in
+ * the parent of a parent-child daemon scenario.
+ * Returns zero on failure, non-zero on success.
+ * (We don't need to return the codes because the SQLite functions don't
+ * as well.)
+ */
+static int
+ksql_writecol(struct ksqlstmt *stmt, enum ksqlop op, 
+	size_t col, void *buf, size_t bufsz)
+{
+
+	assert(KSQLSRV_ISCHILD(stmt->sql));
+
+	if (KSQL_OK != ksql_writeop(stmt->sql, op))
+		return(0);
+	if (KSQL_OK != ksql_writeptr(stmt->sql, stmt->ptr))
+		return(0);
+	if (KSQL_OK != ksql_writepos(stmt->sql, col))
+		return(0);
+	if (KSQL_OK != ksql_readbuf(stmt->sql, buf, bufsz, 0))
+		return(0);
+	return(1);
+}
+
 const void *
 ksql_stmt_blob(struct ksqlstmt *stmt, size_t col)
 {
@@ -1591,29 +1736,46 @@ ksql_stmt_blob(struct ksqlstmt *stmt, size_t col)
 size_t
 ksql_stmt_bytes(struct ksqlstmt *stmt, size_t col)
 {
+	size_t	 val;
 
-	return((size_t)sqlite3_column_bytes(stmt->stmt, (int)col));
+	if ( ! KSQLSRV_ISPARENT(stmt->sql))
+		return(sqlite3_column_bytes(stmt->stmt, col));
+	return(ksql_writecol(stmt, KSQLOP_COL_BYTES, 
+		col, &val, sizeof(size_t)) ? val : 0);
 }
 
 double
 ksql_stmt_double(struct ksqlstmt *stmt, size_t col)
 {
+	double		 val;
 
-	return(sqlite3_column_double(stmt->stmt, (int)col));
+	if ( ! KSQLSRV_ISPARENT(stmt->sql))
+		return(sqlite3_column_double(stmt->stmt, col));
+	return(ksql_writecol(stmt, KSQLOP_COL_DOUBLE, 
+		col, &val, sizeof(double)) ? val : 0.0);
 }
 
 int
 ksql_stmt_isnull(struct ksqlstmt *stmt, size_t col)
 {
+	int	 val;
 
-	return(SQLITE_NULL == sqlite3_column_type(stmt->stmt, (int)col));
+	if ( ! KSQLSRV_ISPARENT(stmt->sql))
+		return(SQLITE_NULL == 
+		       sqlite3_column_type(stmt->stmt, col));
+	return(ksql_writecol(stmt, KSQLOP_COL_ISNULL, 
+		col, &val, sizeof(int)) ? val : 0);
 }
 
 int64_t
 ksql_stmt_int(struct ksqlstmt *stmt, size_t col)
 {
+	int64_t		 val;
 
-	return(sqlite3_column_int64(stmt->stmt, (int)col));
+	if ( ! KSQLSRV_ISPARENT(stmt->sql))
+		return(sqlite3_column_int64(stmt->stmt, col));
+	return(ksql_writecol(stmt, KSQLOP_COL_INT, 
+		col, &val, sizeof(int64_t)) ? val : 0);
 }
 
 char *
