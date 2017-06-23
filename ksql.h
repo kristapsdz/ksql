@@ -32,6 +32,8 @@ enum ksqlc {
 	KSQL_TRANS, /* transaction recursive or not started */
 	KSQL_STMT, /* statement still open at close */
 	KSQL_EXIT, /* closing database on exit */
+	KSQL_SYSTEM, /* system error (fork, socketpair, etc.) */
+	KSQL_EOF, /* internal only */
 };
 
 typedef	void (*ksqldbmsg)(void *, int, int, const char *, const char *);
@@ -53,6 +55,7 @@ struct	ksqlstmt;
 __BEGIN_DECLS
 
 struct ksql	*ksql_alloc(const struct ksqlcfg *);
+struct ksql	*ksql_alloc_secure(const struct ksqlcfg *, void(*)(void *), void *);
 enum ksqlc	 ksql_bind_blob(struct ksqlstmt *, 
 			size_t, const void *, size_t);
 enum ksqlc	 ksql_bind_double(struct ksqlstmt *, size_t, double);
@@ -71,16 +74,19 @@ const void	*ksql_stmt_blob(struct ksqlstmt *, size_t);
 size_t		 ksql_stmt_bytes(struct ksqlstmt *, size_t);
 enum ksqlc	 ksql_stmt_cstep(struct ksqlstmt *);
 double		 ksql_stmt_double(struct ksqlstmt *, size_t);
-void		 ksql_stmt_free(struct ksqlstmt *);
+enum ksqlc	 ksql_stmt_free(struct ksqlstmt *);
 int64_t		 ksql_stmt_int(struct ksqlstmt *, size_t);
 int		 ksql_stmt_isnull(struct ksqlstmt *, size_t);
-void		 ksql_stmt_reset(struct ksqlstmt *);
+enum ksqlc	 ksql_stmt_reset(struct ksqlstmt *);
 enum ksqlc	 ksql_stmt_step(struct ksqlstmt *);
 char		*ksql_stmt_str(struct ksqlstmt *, size_t);
 enum ksqlc	 ksql_trans_commit(struct ksql *, size_t);
 enum ksqlc	 ksql_trans_exclopen(struct ksql *, size_t);
 enum ksqlc	 ksql_trans_open(struct ksql *, size_t);
 enum ksqlc	 ksql_trans_rollback(struct ksql *, size_t);
+
+void		 ksql_trace(struct ksql *);
+void		 ksql_untrace(void);
 
 void		 ksqlitedbmsg(void *, int, int, const char *, const char *);
 void		 ksqlitemsg(void *, enum ksqlc, const char *, const char *);
