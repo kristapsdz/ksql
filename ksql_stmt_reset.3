@@ -1,6 +1,6 @@
 .\"	$Id$
 .\"
-.\" Copyright (c) 2016 Kristaps Dzonsons <kristaps@bsd.lv>
+.\" Copyright (c) 2016--2017 Kristaps Dzonsons <kristaps@bsd.lv>
 .\"
 .\" Permission to use, copy, modify, and distribute this software for any
 .\" purpose with or without fee is hereby granted, provided that the above
@@ -24,7 +24,7 @@
 .Lb ksql
 .Sh SYNOPSIS
 .In ksql.h
-.Ft void
+.Ft "enum ksqlc"
 .Fo ksql_stmt_reset
 .Fa "struct ksql_stmt *stmt"
 .Fc
@@ -39,7 +39,9 @@ effectively just
 .\" For section 9 functions only.
 .\" .Sh IMPLEMENTATION NOTES
 .\" Not used in OpenBSD.
-.\" .Sh RETURN VALUES
+.Sh RETURN VALUES
+Always returns
+.Dv KSQL_OK .
 .\" For sections 2, 3, and 9 function return values only.
 .\" .Sh ENVIRONMENT
 .\" For sections 1, 6, 7, and 8 only.
