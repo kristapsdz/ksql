@@ -39,6 +39,11 @@ SRCS	 = $(MANS) \
 	   ksql.h \
 	   Makefile
 
+all: test libksql.a
+
+test: main.c libksql.a
+	$(CC) $(CFLAGS) -o $@ main.c libksql.a -lsqlite3 
+
 libksql.a: ksql.o
 	$(AR) rs $@ ksql.o
 
@@ -67,10 +72,10 @@ install: libksql.a
 	install -m 0444 $(MANS) $(PREFIX)/man/man3
 
 clean:
-	rm -f libksql.a ksql.o $(HTMLS) ksql.tar.gz
+	rm -f libksql.a ksql.o $(HTMLS) ksql.tar.gz test
 
 .3.3.html:
-	mandoc -Ostyle=mandoc.css -Oman=http://man.openbsd.org/%N.%S -Thtml $< >$@
+	mandoc -Ostyle=mandoc.css -Thtml $< >$@
 
 index.html: versions.xml
 
