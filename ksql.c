@@ -69,12 +69,27 @@ static	sigjmp_buf jmpbuf;
 static	volatile sig_atomic_t dojmp;
 
 /*
+ * When obtaining results from the parent-child model, we need to keep
+ * track of the pointers in blob and text results to maintain SQLite's
+ * invariant that a pointer will be available til the next type
+ * conversion, step, reset, or free.
+ * This is only applicable for the parent.
+ */
+struct	kcache {
+	void	 		*s; /* pointer to results */
+	TAILQ_ENTRY(kcache)	 entries;
+};
+
+TAILQ_HEAD(kcacheq, kcache);
+
+/*
  * Holder for pending SQLite statements.
  * If we exit out of state, we'll finalise these statements.
  */
 struct	ksqlstmt {
 	sqlite3_stmt		*stmt; /* statement */
 	size_t			 id; /* its identifier */
+	struct kcacheq		 cache; /* pointer cache */
 	struct ksql		*sql; /* corresponding db */
 	void			*ptr; /* daemon mode pointer */
 	TAILQ_ENTRY(ksqlstmt) 	 entries;
@@ -144,10 +159,12 @@ enum	ksqlop {
 	KSQLOP_BIND_TEXT, /* ksql_bind_text */  
 	KSQLOP_BIND_ZBLOB, /* ksql_bind_zblob */
 	KSQLOP_CLOSE, /* ksql_close */
+	KSQLOP_COL_BLOB, /* ksql_stmt_blob */
 	KSQLOP_COL_BYTES, /* ksql_stmt_bytes */
 	KSQLOP_COL_DOUBLE, /* ksql_stmt_double */
 	KSQLOP_COL_INT, /* ksql_stmt_int */
 	KSQLOP_COL_ISNULL, /* ksql_stmt_isnull */
+	KSQLOP_COL_STR, /* ksql_stmt_str */
 	KSQLOP_EXEC, /* ksql_exec */
 	KSQLOP_LASTID, /* ksql_lastid */
 	KSQLOP_OPEN, /* ksql_open */
@@ -167,10 +184,12 @@ static	const char *const ksqlops[] = {
 	"BIND_TEXT", /* KSQLOP_BIND_TEXT */
 	"BIND_ZBLOB", /* KSQLOP_BIND_ZBLOB */
 	"CLOSE", /* KSQLOP_CLOSE */
+	"COL_BLOB", /* KSQLOP_COL_BLOB */
 	"COL_BYTES", /* KSQLOP_COL_BYTES */
 	"COL_DOUBLE", /* KSQLOP_COL_DOUBLE */
 	"COL_INT", /* KSQLOP_COL_INT */
 	"COL_ISNULL", /* KSQLOP_COL_ISNULL */
+	"COL_STR", /* KSQLOP_COL_STR */
 	"EXEC", /* KSQL_EXEC */
 	"LASTID", /* KSQLOP_LASTID */
 	"OPEN", /* KSQLOP_OPEN */
@@ -441,6 +460,8 @@ ksql_readbuf(struct ksql *p, void *buf, size_t sz, int eofok)
 	int		 rc;
 	const char	*msg;
 
+	assert(sz > 0);
+
 	assert(NULL != p->daemon);
 	assert(-1 != p->daemon->fd);
 
@@ -565,6 +586,8 @@ ksql_writebuf(struct ksql *p, const void *buf, size_t sz)
 	struct pollfd	 pfd;
 	int		 rc;
 	const char	*msg;
+
+	assert(sz > 0);
 
 	assert(NULL != p->daemon);
 	assert(-1 != p->daemon->fd);
@@ -894,8 +917,6 @@ ksqlsrv_stmt_free(struct ksql *p)
 	if (KSQL_OK != (c = ksql_readptr(p, &ss)))
 		return(c);
 
-	warnx("%s: %p", __func__, ss);
-
 	/* Return code form ksql_stmt_free always KSQL_OK */
 
 	return(ksql_stmt_free(ss));
@@ -963,6 +984,72 @@ ksqlsrv_stmt_int(struct ksql *p)
 		return(c);
 	val = ksql_stmt_int(stmt, col);
 	return(ksql_writebuf(p, &val, sizeof(int64_t)));
+}
+
+static enum ksqlc
+ksqlsrv_stmt_blob(struct ksql *p)
+{
+	enum ksqlc	 c;
+	struct ksqlstmt	*stmt;
+	size_t		 col, sz;
+	const char	*val;
+
+	if (KSQL_OK != (c = ksql_readptr(p, &stmt)))
+		return(c);
+	if (KSQL_OK != (c = ksql_readsz(p, &col)))
+		return(c);
+
+	/* Get both the size and pointer first. */
+
+	sz = ksql_stmt_bytes(stmt, col);
+	val = ksql_stmt_str(stmt, col);
+
+	/* 
+	 * If val is NULL, SQLite couldn't allocate OR the size of the
+	 * buffer was zero.
+	 * We want to handle both conditions, so construe the number of
+	 * bytes as zero either way and don't transmit.
+	 */
+
+	if (NULL == val)
+		sz = 0;
+	if (KSQL_OK != (c = ksql_writesz(p, sz)))
+		return(c);
+	if (0 != sz)
+		c = ksql_writebuf(p, val, sz);
+	return(c);
+}
+
+static enum ksqlc
+ksqlsrv_stmt_str(struct ksql *p)
+{
+	enum ksqlc	 c;
+	struct ksqlstmt	*stmt;
+	size_t		 col, sz;
+	const char	*val;
+
+	if (KSQL_OK != (c = ksql_readptr(p, &stmt)))
+		return(c);
+	if (KSQL_OK != (c = ksql_readsz(p, &col)))
+		return(c);
+
+	/*
+	 * SQLite returns NULL on allocation failure.
+	 * So we do something special here.
+	 * Send the string *buffer* length, which is always non-zero to
+	 * account for the nil terminator.
+	 * If that's zero, then we know that we have a NULL.
+	 * If that's one, then it's a zero-length string.
+	 */
+
+	val = ksql_stmt_str(stmt, col);
+	sz = NULL == val ? 0 : strlen(val) + 1;
+
+	if (KSQL_OK != (c = ksql_writesz(p, sz)))
+		return(c);
+	if (sz > 1)
+		c = ksql_writebuf(p, val, sz - 1);
+	return(c);
 }
 
 static enum ksqlc
@@ -1086,6 +1173,9 @@ ksql_alloc_secure(const struct ksqlcfg *cfg,
 		case (KSQLOP_CLOSE):
 			c = ksqlsrv_close(p);
 			break;
+		case (KSQLOP_COL_BLOB):
+			c = ksqlsrv_stmt_blob(p);
+			break;
 		case (KSQLOP_COL_BYTES):
 			c = ksqlsrv_stmt_bytes(p);
 			break;
@@ -1097,6 +1187,9 @@ ksql_alloc_secure(const struct ksqlcfg *cfg,
 			break;
 		case (KSQLOP_COL_ISNULL):
 			c = ksqlsrv_stmt_isnull(p);
+			break;
+		case (KSQLOP_COL_STR):
+			c = ksqlsrv_stmt_str(p);
 			break;
 		case (KSQLOP_EXEC):
 			c = ksqlsrv_exec(p);
@@ -1196,14 +1289,17 @@ ksql_close_inner(struct ksql *p, int onexit)
 {
 	struct ksqlstmt	*stmt;
 	char		 buf[PATH_MAX];
-	enum ksqlc	 haserrs, c;
+	enum ksqlc	 haserrs = KSQL_OK, c;
 	int		 ischild;
 
-	haserrs = KSQL_OK;
-
-	/* Short-circuit. */
-	if (NULL == p || NULL == p->db)
+	if (NULL == p)
 		return(KSQL_OK);
+
+	/* 
+	 * This might be called as the child process.
+	 * It's either that or single-process mode.
+	 * This is *never* called for the parent in split-process mode.
+	 */
 
 	ischild = KSQLSRV_ISCHILD(p);
 
@@ -1214,7 +1310,11 @@ ksql_close_inner(struct ksql *p, int onexit)
 	 * Finalise out all open statements first. 
 	 * Don't run ksql_err() yet because it will kill the process
 	 * and we want to free these now.
+	 * Only do this as the child process---we'll ignore the fact
+	 * that we have open data in the parent and just release it.
+	 * (The child will report its errors.)
 	 */
+
 	while ( ! TAILQ_EMPTY(&p->stmt_used)) {
 		stmt = TAILQ_FIRST(&p->stmt_used);
 		warnx("%s: closing: %p", __func__, stmt);
@@ -1223,15 +1323,16 @@ ksql_close_inner(struct ksql *p, int onexit)
 		snprintf(buf, sizeof(buf),
 			"statement %zu still open", stmt->id);
 		stmt->stmt = NULL;
-		TAILQ_INSERT_TAIL(&p->stmt_free, stmt, entries);
 		haserrs = KSQL_STMT;
 		ksql_err_noexit(p, KSQL_STMT, buf);
+		TAILQ_INSERT_TAIL(&p->stmt_free, stmt, entries);
 	}
 
 	/* 
 	 * A transaction is open on exit.
 	 * Close it and unset the notification.
 	 */
+
 	if (KSQLFL_TRANS & p->flags) {
 		snprintf(buf, sizeof(buf),
 			"transaction %zu still open", p->trans);
@@ -1247,7 +1348,8 @@ ksql_close_inner(struct ksql *p, int onexit)
 	}
 
 	/* Now try to close the database itself. */
-	if (SQLITE_OK != sqlite3_close(p->db)) {
+
+	if (NULL != p->db && SQLITE_OK != sqlite3_close(p->db)) {
 		ksql_dberr_noexit(p);
 		haserrs = KSQL_DB;
 	}
@@ -1257,6 +1359,7 @@ ksql_close_inner(struct ksql *p, int onexit)
 	p->db = NULL;
 
 	/* Delay our exit check til now. */
+
 	if (haserrs && KSQL_EXIT_ON_ERR & p->cfg.flags)
 		exit(EXIT_FAILURE);
 
@@ -1267,8 +1370,6 @@ enum ksqlc
 ksql_close(struct ksql *p)
 {
 	enum ksqlc	 c, cc;
-
-	warnx(__func__);
 
 	if (KSQLSRV_ISPARENT(p)) {
 		if (KSQL_OK != (c = ksql_writeop(p, KSQLOP_CLOSE)))
@@ -1414,6 +1515,18 @@ again:
 		KSQL_OK);
 }
 
+static void
+ksql_cache_flush(struct ksqlstmt *stmt)
+{
+	struct kcache	*c;
+
+	while (NULL != (c = TAILQ_FIRST(&stmt->cache))) {
+		TAILQ_REMOVE(&stmt->cache, c, entries);
+		free(c->s);
+		free(c);
+	}
+}
+
 /*
  * Accommodate for both constraint-step (step where we allow constraint
  * failures not to tank the step) and regular step.
@@ -1426,6 +1539,7 @@ ksql_step_inner(struct ksqlstmt *stmt, size_t cstr)
 	enum ksqlc	c, cc;
 
 	if (KSQLSRV_ISPARENT(stmt->sql)) {
+		ksql_cache_flush(stmt);
 		c = ksql_writeop(stmt->sql, KSQLOP_STMT_STEP);
 		if (KSQL_OK != c)
 			return(c);
@@ -1466,22 +1580,30 @@ again:
 	return(ksql_dberr(stmt->sql));
 }
 
+/* 
+ * FIXME: error code from sqlite3_reset()?
+ */
 enum ksqlc
 ksql_stmt_reset(struct ksqlstmt *stmt)
 {
-	enum ksqlc	 c;
+	enum ksqlc	 c = KSQL_OK;
+
+	/*
+	 * As defined in the SQLite manual, which we'll do as well, we
+	 * want to clear our pointer cache if we have a reset and we're
+	 * in the parent of a split process.
+	 */
 
 	if (KSQLSRV_ISPARENT(stmt->sql)) {
+		ksql_cache_flush(stmt);
 		c = ksql_writeop(stmt->sql, KSQLOP_STMT_RESET);
 		if (KSQL_OK != c)
 			return(c);
-		return(ksql_writeptr(stmt->sql, stmt->ptr));
-	}
+		c = ksql_writeptr(stmt->sql, stmt->ptr);
+	} else
+		sqlite3_reset(stmt->stmt);
 
-	/* FIXME: error code from reset? */
-
-	sqlite3_reset(stmt->stmt);
-	return(KSQL_OK);
+	return(c);
 }
 
 enum ksqlc
@@ -1498,42 +1620,48 @@ ksql_stmt_cstep(struct ksqlstmt *stmt)
 	return(ksql_step_inner(stmt, 1));
 }
 
+/* 
+ * FIXME: error code from sqlite3_finalize?
+ */
 enum ksqlc
 ksql_stmt_free(struct ksqlstmt *stmt)
 {
-	enum ksqlc	 c;
+	enum ksqlc	 c = KSQL_OK;
 
 	if (NULL == stmt)
 		return(KSQL_OK);
 
+	/*
+	 * If we're in the parent of a split-process, flush out our
+	 * cache of active blob and string pointers and nullify the
+	 * underlying statement pointer.
+	 * If we're in the child (or in the single process), finalise
+	 * the statement.
+	 * Then recycle the statement object for both.
+	 */
+
 	if (KSQLSRV_ISPARENT(stmt->sql)) {
+		ksql_cache_flush(stmt);
 		c = ksql_writeop(stmt->sql, KSQLOP_STMT_FREE);
-		if (KSQL_OK != c) {
-			free(stmt);
-			return(c);
-		}
-		warnx("%s: wrote: %p", __func__, stmt->ptr);
-		c = ksql_writeptr(stmt->sql, stmt->ptr);
-		free(stmt);
-		return(c);
+		if (KSQL_OK == c)
+			c = ksql_writeptr(stmt->sql, stmt->ptr);
+		stmt->ptr = NULL;
+	} else {
+		assert(TAILQ_EMPTY(&stmt->cache));
+		sqlite3_finalize(stmt->stmt);
+		stmt->stmt = NULL;
 	}
 
-	/* FIXME: error code from finalise? */
-
-	warnx("%s: finalising: %p", __func__, stmt);
-
-	sqlite3_finalize(stmt->stmt);
-	stmt->stmt = NULL;
 	TAILQ_REMOVE(&stmt->sql->stmt_used, stmt, entries);
 	TAILQ_INSERT_TAIL(&stmt->sql->stmt_free, stmt, entries);
-	return(KSQL_OK);
+	return(c);
 }
 
 enum ksqlc
 ksql_stmt_alloc(struct ksql *p, 
 	struct ksqlstmt **stmt, const char *sql, size_t id)
 {
-	struct ksqlstmt	*ss;
+	struct ksqlstmt	*ss, *sp;
 	size_t		 attempt = 0;
 	sqlite3_stmt 	*st;
 	int		 rc;
@@ -1541,7 +1669,26 @@ ksql_stmt_alloc(struct ksql *p,
 
 	*stmt = NULL;
 
-	/* Parent writes arguments, receives code & pointer. */
+	/*
+	 * If we don't have any spare statements to draw from, allocate
+	 * one now before investing in the statement preparation.
+	 * Put it on the free list: we'll pull from this imminently.
+	 */
+
+	if (TAILQ_EMPTY(&p->stmt_free)) {
+		ss = calloc(1, sizeof(struct ksqlstmt));
+		if (NULL == ss)
+			return(ksql_err(p, KSQL_MEM, NULL));
+		TAILQ_INIT(&ss->cache);
+		TAILQ_INSERT_TAIL(&p->stmt_free, ss, entries);
+	} 
+
+	/* 
+	 * If in a split process, the parent writes arguments, receives
+	 * code & pointer.
+	 * We only allocate from the free list if we have an active
+	 * connetion from the child process ("sp").
+	 */
 
 	if (KSQLSRV_ISPARENT(p)) {
 		if (KSQL_OK != (c = ksql_writeop(p, KSQLOP_STMT_ALLOC)))
@@ -1554,26 +1701,21 @@ ksql_stmt_alloc(struct ksql *p,
 			return(c);
 		if (KSQL_OK != cc)
 			return(cc);
-		if (KSQL_OK != (c = ksql_readptr(p, &ss)))
+		if (KSQL_OK != (c = ksql_readptr(p, &sp)))
 			return(c);
+
+		ss = TAILQ_FIRST(&p->stmt_free);
 		assert(NULL != ss);
-		*stmt = calloc(1, sizeof(struct ksqlstmt));
-		(*stmt)->sql = p;
-		(*stmt)->ptr = ss;
-		warnx("%s: %p", __func__, ss);
+		memset(ss, 0, sizeof(struct ksqlstmt));
+		ss->sql = p;
+		ss->id = id;
+		ss->ptr = sp;
+		TAILQ_INIT(&ss->cache);
+		TAILQ_REMOVE(&p->stmt_free, ss, entries);
+		TAILQ_INSERT_TAIL(&p->stmt_used, ss, entries);
+		*stmt = ss;
 		return(cc);
 	}
-
-	/*
-	 * If we don't have any spare statements to draw from, allocate
-	 * one now before investing in the statement preparation.
-	 */
-	if (TAILQ_EMPTY(&p->stmt_free)) {
-		ss = calloc(1, sizeof(struct ksqlstmt));
-		if (NULL == ss)
-			return(ksql_err(p, KSQL_MEM, NULL));
-		TAILQ_INSERT_TAIL(&p->stmt_free, ss, entries);
-	} 
 	
 	if (NULL == p->db) 
 		return(ksql_err(p, KSQL_NOTOPEN, NULL));
@@ -1596,11 +1738,14 @@ again:
 	 * Draw an unused statement container from the queue (we made
 	 * one above if there were now) and fill it here.
 	 */
+
 	ss = TAILQ_FIRST(&p->stmt_free);
 	assert(NULL != ss);
+	memset(ss, 0, sizeof(struct ksqlstmt));
 	ss->stmt = st;
 	ss->id = id;
 	ss->sql = p;
+	TAILQ_INIT(&ss->cache);
 	TAILQ_REMOVE(&p->stmt_free, ss, entries);
 	TAILQ_INSERT_TAIL(&p->stmt_used, ss, entries);
 	*stmt = ss;
@@ -1850,14 +1995,59 @@ ksql_writecol(struct ksqlstmt *stmt, enum ksqlop op,
 		return(0);
 	if (KSQL_OK != ksql_readbuf(stmt->sql, buf, bufsz, 0))
 		return(0);
+
 	return(1);
 }
 
 const void *
 ksql_stmt_blob(struct ksqlstmt *stmt, size_t col)
 {
+	size_t		 sz;
+	char		*cp;
+	struct kcache	*c;
 
-	return(sqlite3_column_blob(stmt->stmt, (int)col));
+	if ( ! KSQLSRV_ISPARENT(stmt->sql))
+		return(sqlite3_column_blob(stmt->stmt, col));
+
+	if (KSQL_OK != ksql_writeop(stmt->sql, KSQLOP_COL_STR))
+		return(NULL);
+	if (KSQL_OK != ksql_writeptr(stmt->sql, stmt->ptr))
+		return(NULL);
+	if (KSQL_OK != ksql_writesz(stmt->sql, col))
+		return(NULL);
+
+	/* 
+	 * Note: ksql_stmt_blob doesn't return the byte size.
+	 * We do so in ksqlsrv_stmt_blob instead.
+	 * If the byte size is zero, then SQLite had a memory failure or
+	 * is returning nothing in that space.
+	 */
+
+	if (KSQL_OK != ksql_readsz(stmt->sql, &sz))
+		return(NULL);
+	if (0 == sz)
+		return(NULL);
+
+	if (NULL == (cp = malloc(sz))) {
+		ksql_err(stmt->sql, KSQL_MEM, strerror(ENOMEM));
+		return(NULL);
+	}
+
+	if (KSQL_OK != ksql_readbuf(stmt->sql, cp, sz, 0)) {
+		free(cp);
+		return(NULL);
+	}
+
+	/* Put into our pointer cache. */
+
+	if (NULL == (c = calloc(1, sizeof(struct kcache)))) {
+		ksql_err(stmt->sql, KSQL_MEM, strerror(ENOMEM));
+		free(cp);
+		return(NULL);
+	}
+	TAILQ_INSERT_TAIL(&stmt->cache, c, entries);
+	c->s = cp;
+	return(c->s);
 }
 
 size_t
@@ -1905,9 +2095,66 @@ ksql_stmt_int(struct ksqlstmt *stmt, size_t col)
 		col, &val, sizeof(int64_t)) ? val : 0);
 }
 
-char *
+const char *
 ksql_stmt_str(struct ksqlstmt *stmt, size_t col)
 {
+	char		*cp;
+	size_t		 sz;
+	struct kcache	*c;
 
-	return((char *)sqlite3_column_text(stmt->stmt, (int)col));
+	if ( ! KSQLSRV_ISPARENT(stmt->sql))
+		return((char *)sqlite3_column_text(stmt->stmt, col));
+
+	/* 
+	 * This is a little tricky because we need to handle
+	 * out-of-memory conditions for ourselves, our child, and SQLite
+	 * itself.
+	 */
+
+	if (KSQL_OK != ksql_writeop(stmt->sql, KSQLOP_COL_STR))
+		return(NULL);
+	if (KSQL_OK != ksql_writeptr(stmt->sql, stmt->ptr))
+		return(NULL);
+	if (KSQL_OK != ksql_writesz(stmt->sql, col))
+		return(NULL);
+
+	/*
+	 * If we get a zero-sized buffer, that means that SQLite
+	 * couldn't allocate for the string and returned NULL.
+	 */
+
+	if (KSQL_OK != ksql_readsz(stmt->sql, &sz))
+		return(NULL);
+	if (0 == sz)
+		return(NULL);
+
+	/* Allocate and nil-terminate, then fill. */
+
+	if (NULL == (cp = malloc(sz))) {
+		ksql_err(stmt->sql, KSQL_MEM, strerror(ENOMEM));
+		return(NULL);
+	}
+	cp[sz - 1] = '\0';
+
+	/* 
+	 * If we have a one-length string, it's empty so don't pass into
+	 * the readbuf function (it will assert).
+	 */
+
+	if (sz > 1 &&
+	    KSQL_OK != ksql_readbuf(stmt->sql, cp, sz - 1, 0)) {
+		free(cp);
+		return(NULL);
+	}
+
+	/* Put into our pointer cache. */
+
+	if (NULL == (c = calloc(1, sizeof(struct kcache)))) {
+		ksql_err(stmt->sql, KSQL_MEM, strerror(ENOMEM));
+		free(cp);
+		return(NULL);
+	}
+	TAILQ_INSERT_TAIL(&stmt->cache, c, entries);
+	c->s = cp;
+	return(c->s);
 }
