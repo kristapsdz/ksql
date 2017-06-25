@@ -148,6 +148,7 @@ enum	ksqlop {
 	KSQLOP_COL_DOUBLE, /* ksql_stmt_double */
 	KSQLOP_COL_INT, /* ksql_stmt_int */
 	KSQLOP_COL_ISNULL, /* ksql_stmt_isnull */
+	KSQLOP_EXEC, /* ksql_exec */
 	KSQLOP_LASTID, /* ksql_lastid */
 	KSQLOP_OPEN, /* ksql_open */
 	KSQLOP_STMT_ALLOC, /* ksql_stmt_alloc */
@@ -170,6 +171,7 @@ static	const char *const ksqlops[] = {
 	"COL_DOUBLE", /* KSQLOP_COL_DOUBLE */
 	"COL_INT", /* KSQLOP_COL_INT */
 	"COL_ISNULL", /* KSQLOP_COL_ISNULL */
+	"EXEC", /* KSQL_EXEC */
 	"LASTID", /* KSQLOP_LASTID */
 	"OPEN", /* KSQLOP_OPEN */
 	"STMT_ALLOC", /* KSQLOP_STMT_ALLOC */
@@ -733,6 +735,20 @@ ksqlsrv_open(struct ksql *p)
 }
 
 static enum ksqlc
+ksqlsrv_exec(struct ksql *p)
+{
+	enum ksqlc	 c, cc;
+	char		*sql;
+
+	if (KSQL_OK != (c = ksql_readstr(p, &sql)))
+		return(c);
+	/* TODO: id is ignored */
+	cc = ksql_exec(p, sql, 0);
+	free(sql);
+	return(ksql_writecode(p, cc));
+}
+
+static enum ksqlc
 ksqlsrv_lastid(struct ksql *p)
 {
 	enum ksqlc	 c, cc;
@@ -1082,6 +1098,9 @@ ksql_alloc_secure(const struct ksqlcfg *cfg,
 		case (KSQLOP_COL_ISNULL):
 			c = ksqlsrv_stmt_isnull(p);
 			break;
+		case (KSQLOP_EXEC):
+			c = ksqlsrv_exec(p);
+			break;
 		case (KSQLOP_LASTID):
 			c = ksqlsrv_lastid(p);
 			break;
@@ -1318,9 +1337,19 @@ ksql_free(struct ksql *p)
 enum ksqlc
 ksql_exec(struct ksql *p, const char *sql, size_t id)
 {
-	enum ksqlc	c;
+	enum ksqlc	c, cc;
 
 	(void)id; /* FOR NOW */
+
+	if (KSQLSRV_ISPARENT(p)) {
+		if (KSQL_OK != (c = ksql_writeop(p, KSQLOP_EXEC)))
+			return(c);
+		if (KSQL_OK != (c = ksql_writestr(p, sql)))
+			return(c);
+		if (KSQL_OK != (c = ksql_readcode(p, &cc)))
+			return(c);
+		return(cc);
+	}
 
 	c = ksql_exec_inner(p, sql);
 	if (KSQL_DB == c)
@@ -1336,17 +1365,17 @@ ksql_open(struct ksql *p, const char *dbfile)
 {
 	size_t		 attempt = 0;
 	int		 rc;
-	enum ksqlc	 er, cc;
+	enum ksqlc	 c, cc;
 
 	/* Optionally perform parent->child communication. */
 
 	if (KSQLSRV_ISPARENT(p)) {
-		if (KSQL_OK != (er = ksql_writeop(p, KSQLOP_OPEN)))
-			return(er);
-		if (KSQL_OK != (er = ksql_writestr(p, dbfile)))
-			return(er);
-		if (KSQL_OK != (er = ksql_readcode(p, &cc)))
-			return(er);
+		if (KSQL_OK != (c = ksql_writeop(p, KSQLOP_OPEN)))
+			return(c);
+		if (KSQL_OK != (c = ksql_writestr(p, dbfile)))
+			return(c);
+		if (KSQL_OK != (c = ksql_readcode(p, &cc)))
+			return(c);
 		return(cc);
 	}
 
@@ -1359,8 +1388,8 @@ ksql_open(struct ksql *p, const char *dbfile)
 	 */
 
 	if (NULL != p->db) 
-		if (KSQL_OK != (er = ksql_close(p)))
-			return(er);
+		if (KSQL_OK != (c = ksql_close(p)))
+			return(c);
 
 	if (NULL == (p->dbfile = strdup(dbfile)))
 		return(ksql_err(p, KSQL_MEM, NULL));
@@ -1811,7 +1840,7 @@ ksql_writecol(struct ksqlstmt *stmt, enum ksqlop op,
 	size_t col, void *buf, size_t bufsz)
 {
 
-	assert(KSQLSRV_ISCHILD(stmt->sql));
+	assert(KSQLSRV_ISPARENT(stmt->sql));
 
 	if (KSQL_OK != ksql_writeop(stmt->sql, op))
 		return(0);
