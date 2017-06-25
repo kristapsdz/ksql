@@ -1105,9 +1105,6 @@ ksql_alloc_secure(const struct ksqlcfg *cfg,
 		 * Create a dummy ksql that will have only an active
 		 * ksqld for communicating with the child.
 		 */
-
-		warnx("%s: parent", __func__);
-
 		close(fd[1]);
 		if (NULL == (p = calloc(1, sizeof(struct ksql))) ||
 		    NULL == (d = calloc(1, sizeof(struct ksqld)))) {
@@ -1116,12 +1113,13 @@ ksql_alloc_secure(const struct ksqlcfg *cfg,
 			return(NULL);
 		}
 		p->daemon = d;
+		TAILQ_INIT(&p->stmt_used);
+		TAILQ_INIT(&p->stmt_free);
 		d->fd = fd[0];
 		d->pid = pid;
+		warnx("%s: parent complete", __func__);
 		return(p);
 	}
-
-	warnx("%s: child", __func__);
 
 	/* Close out the other socketpair end. */
 
@@ -1151,17 +1149,16 @@ ksql_alloc_secure(const struct ksqlcfg *cfg,
 	}
 	p->daemon->fd = comm;
 
-	warnx("%s: allocated: %p", __func__, p);
+	warnx("%s: child complete", __func__);
 
 	/* Now we loop on operations. */
 
 	c = KSQL_OK;
 
 	while (KSQL_OK == c) {
-		if (KSQL_EOF == (c = ksql_readop(p, &op))) {
-			warnx("%s: child exiting", __func__);
+		if (KSQL_EOF == (c = ksql_readop(p, &op)))
 			break;
-		} else if (KSQL_OK != c)
+		else if (KSQL_OK != c)
 			break;
 		warnx("%s: child: %s", __func__, ksqlops[op]);
 		switch (op) {
@@ -1223,6 +1220,7 @@ ksql_alloc_secure(const struct ksqlcfg *cfg,
 		}
 	}
 
+	warnx("%s: child exiting", __func__);
 	ksql_free(p);
 	exit(KSQL_EOF == c ? EXIT_SUCCESS : EXIT_FAILURE);
 }
@@ -1706,7 +1704,7 @@ ksql_stmt_alloc(struct ksql *p,
 
 		ss = TAILQ_FIRST(&p->stmt_free);
 		assert(NULL != ss);
-		memset(ss, 0, sizeof(struct ksqlstmt));
+		ss->stmt = NULL;
 		ss->sql = p;
 		ss->id = id;
 		ss->ptr = sp;
@@ -1741,10 +1739,10 @@ again:
 
 	ss = TAILQ_FIRST(&p->stmt_free);
 	assert(NULL != ss);
-	memset(ss, 0, sizeof(struct ksqlstmt));
 	ss->stmt = st;
 	ss->id = id;
 	ss->sql = p;
+	ss->ptr = NULL;
 	TAILQ_INIT(&ss->cache);
 	TAILQ_REMOVE(&p->stmt_free, ss, entries);
 	TAILQ_INSERT_TAIL(&p->stmt_used, ss, entries);
