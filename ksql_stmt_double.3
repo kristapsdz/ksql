@@ -54,7 +54,7 @@
 .Fa "struct ksql_stmt *stmt"
 .Fa "size_t col"
 .Fc
-.Ft "char *"
+.Ft "const char *"
 .Fo ksql_stmt_str
 .Fa "struct ksql_stmt *stmt"
 .Fa "size_t col"
@@ -80,9 +80,16 @@ and
 functions are usually used to return binary data.
 The
 .Nm ksql_stmt_str
-returns a string whose memory is
+and
+.Nm ksql_stmt_blob
+return memory
 .Dq owned
 by the database, so it should be copied before modification.
+These pointers are only valid until a subsequent
+.Xr ksql_stmt_step 3 ,
+.Xr ksql_stmt_reset 3 ,
+or
+.Xr ksql_stmt_free 3 .
 .Pp
 The
 .Nm ksql_stmt_isnull
