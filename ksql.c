@@ -220,14 +220,11 @@ ksql_atexit(void)
 {
 	struct ksql	*p;
 
-	warnx(__func__);
-
 	atexits = 0;
 	dojmp = 0;
 
 	while ( ! TAILQ_EMPTY(&ksqls)) {
 		p = TAILQ_FIRST(&ksqls);
-		warnx("%s: killing: %p", __func__, p);
 		/*
 		 * We're already exiting, so don't let any of the
 		 * interior functions bail us out again.
@@ -707,11 +704,17 @@ ksql_writebound(struct ksqlstmt *ss, enum ksqlop op,
 		return(c);
 	if (KSQL_OK != (c = ksql_writesz(ss->sql, pos)))
 		return(c);
-	if (KSQLOP_BIND_ZBLOB == op) {
+	if (KSQLOP_BIND_TEXT == op) {
+		/* Ignore bufsz. */
+		c = ksql_writestr(ss->sql, buf);
+		if (KSQL_OK != c)
+			return(c);
+	} else if (KSQLOP_BIND_ZBLOB == op) {
 		c = ksql_writesz(ss->sql, bufsz);
 		if (KSQL_OK != c)
 			return(c);
 	} else if (KSQLOP_BIND_NULL != op) {
+		/* FIXME: handle zero-length. */
 		c = ksql_writesz(ss->sql, bufsz);
 		if (KSQL_OK != c)
 			return(c);
@@ -733,7 +736,6 @@ static enum ksqlc
 ksqlsrv_close(struct ksql *p)
 {
 
-	warnx(__func__);
 	return(ksql_writecode(p, ksql_close(p)));
 }
 
@@ -752,7 +754,6 @@ ksqlsrv_open(struct ksql *p)
 		return(c);
 
 	c = ksql_open(p, dbfile);
-	warnx("%s: opened: %s", __func__, dbfile);
 	free(dbfile);
 	return(ksql_writecode(p, c));
 }
@@ -811,6 +812,7 @@ ksqlsrv_bind(struct ksql *p, enum ksqlop op)
 	} else if (KSQLOP_BIND_NULL != op) {
 		if (KSQL_OK != (c = ksql_readsz(p, &bufsz)))
 			return(c);
+		/* FIXME: handle zero-length. */
 		if (NULL == (buf = malloc(bufsz))) {
 			buf = strerror(errno);
 			return(ksql_err(p, KSQL_MEM, buf));
@@ -873,8 +875,6 @@ ksqlsrv_stmt_alloc(struct ksql *p)
 		return(c);
 	if (KSQL_OK != cc)
 		return(cc);
-
-	warnx("%s: allocated statement: %p", __func__, ss);
 
 	/* We now know that "ss" is non-NULL. */
 
@@ -1117,7 +1117,6 @@ ksql_alloc_secure(const struct ksqlcfg *cfg,
 		TAILQ_INIT(&p->stmt_free);
 		d->fd = fd[0];
 		d->pid = pid;
-		warnx("%s: parent complete", __func__);
 		return(p);
 	}
 
@@ -1149,8 +1148,6 @@ ksql_alloc_secure(const struct ksqlcfg *cfg,
 	}
 	p->daemon->fd = comm;
 
-	warnx("%s: child complete", __func__);
-
 	/* Now we loop on operations. */
 
 	c = KSQL_OK;
@@ -1160,8 +1157,10 @@ ksql_alloc_secure(const struct ksqlcfg *cfg,
 			break;
 		else if (KSQL_OK != c)
 			break;
-		warnx("%s: child: %s", __func__, ksqlops[op]);
 		switch (op) {
+		case (KSQLOP_BIND_ZBLOB):
+		case (KSQLOP_BIND_BLOB):
+		case (KSQLOP_BIND_TEXT):
 		case (KSQLOP_BIND_DOUBLE):
 		case (KSQLOP_BIND_INT):
 		case (KSQLOP_BIND_NULL):
@@ -1220,7 +1219,6 @@ ksql_alloc_secure(const struct ksqlcfg *cfg,
 		}
 	}
 
-	warnx("%s: child exiting", __func__);
 	ksql_free(p);
 	exit(KSQL_EOF == c ? EXIT_SUCCESS : EXIT_FAILURE);
 }
@@ -1315,7 +1313,6 @@ ksql_close_inner(struct ksql *p, int onexit)
 
 	while ( ! TAILQ_EMPTY(&p->stmt_used)) {
 		stmt = TAILQ_FIRST(&p->stmt_used);
-		warnx("%s: closing: %p", __func__, stmt);
 		TAILQ_REMOVE(&p->stmt_used, stmt, entries);
 		sqlite3_finalize(stmt->stmt);
 		snprintf(buf, sizeof(buf),
@@ -1396,16 +1393,13 @@ ksql_free_inner(struct ksql *p, int onexit)
 		return(KSQL_OK);
 
 	if (KSQLSRV_ISPARENT(p)) {
-		warnx("%s: parent", __func__);
 		close(p->daemon->fd);
 		waitpid(p->daemon->pid, NULL, 0);
 	} else if (KSQLSRV_ISCHILD(p)) {
-		warnx("%s: child", __func__);
 		er = ksql_close_inner(p, onexit);
 		close(p->daemon->fd);
-	} else {
+	} else
 		er = ksql_close_inner(p, onexit);
-	}
 
 	while ( ! TAILQ_EMPTY(&p->stmt_free)) {
 		stmt = TAILQ_FIRST(&p->stmt_free);
@@ -1787,7 +1781,7 @@ ksql_bind_str(struct ksqlstmt *stmt, size_t pos, const char *val)
 
 	if (KSQLSRV_ISPARENT(stmt->sql))
 		return(ksql_writebound(stmt, 
-			KSQLOP_BIND_TEXT, pos, val, strlen(val)));
+			KSQLOP_BIND_TEXT, pos, val, 0));
 	rc = sqlite3_bind_text(stmt->stmt, 
 		pos + 1, val, -1, SQLITE_STATIC);
 	if (SQLITE_OK == rc)
