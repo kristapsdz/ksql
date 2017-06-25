@@ -148,11 +148,14 @@ enum	ksqlop {
 	KSQLOP_COL_DOUBLE, /* ksql_stmt_double */
 	KSQLOP_COL_INT, /* ksql_stmt_int */
 	KSQLOP_COL_ISNULL, /* ksql_stmt_isnull */
+	KSQLOP_LASTID, /* ksql_lastid */
 	KSQLOP_OPEN, /* ksql_open */
 	KSQLOP_STMT_ALLOC, /* ksql_stmt_alloc */
 	KSQLOP_STMT_FREE, /* ksql_stmt_free */
 	KSQLOP_STMT_RESET, /* ksql_stmt_reset */
 	KSQLOP_STMT_STEP, /* ksql_stmt_step */
+	KSQLOP_TRANS_CLOSE, /* ksql_trans_xxxx */
+	KSQLOP_TRANS_OPEN, /* ksql_trans_xxxx */
 };
 
 static	const char *const ksqlops[] = {
@@ -167,11 +170,14 @@ static	const char *const ksqlops[] = {
 	"COL_DOUBLE", /* KSQLOP_COL_DOUBLE */
 	"COL_INT", /* KSQLOP_COL_INT */
 	"COL_ISNULL", /* KSQLOP_COL_ISNULL */
+	"LASTID", /* KSQLOP_LASTID */
 	"OPEN", /* KSQLOP_OPEN */
 	"STMT_ALLOC", /* KSQLOP_STMT_ALLOC */
 	"STMT_FREE", /* KSQLOP_STMT_FREE */
 	"STMT_RESET", /* KSQLOP_STMT_RESET */
 	"STMT_STEP", /* KSQLOP_STMT_STEP */
+	"TRANS_CLOSE", /* KSQLOP_TRANS_CLOSE */
+	"TRANS_OPEN", /* KSQLOP_TRANS_OPEN */
 };
 
 /*
@@ -179,6 +185,8 @@ static	const char *const ksqlops[] = {
  */
 static enum ksqlc ksql_free_inner(struct ksql *, int);
 static enum ksqlc ksql_step_inner(struct ksqlstmt *, size_t);
+static enum ksqlc ksql_trans_open_inner(struct ksql *, int, size_t);
+static enum ksqlc ksql_trans_close_inner(struct ksql *, int, size_t);
 
 /*
  * This is called within an atexit(3) handler for connections specified
@@ -491,7 +499,7 @@ ksql_readop(struct ksql *p, enum ksqlop *op)
  * See ksql_readbuf().
  */
 static enum ksqlc
-ksql_readpos(struct ksql *p, size_t *sz)
+ksql_readsz(struct ksql *p, size_t *sz)
 {
 
 	return(ksql_readbuf(p, sz, sizeof(size_t), 0));
@@ -640,7 +648,7 @@ ksql_writeptr(struct ksql *p, const struct ksqlstmt *ptr)
  * See ksql_writebuf().
  */
 static enum ksqlc
-ksql_writepos(struct ksql *p, size_t pos)
+ksql_writesz(struct ksql *p, size_t pos)
 {
 
 	return(ksql_writebuf(p, &pos, sizeof(size_t)));
@@ -672,14 +680,14 @@ ksql_writebound(struct ksqlstmt *ss, enum ksqlop op,
 		return(c);
 	if (KSQL_OK != (c = ksql_writeptr(ss->sql, ss->ptr)))
 		return(c);
-	if (KSQL_OK != (c = ksql_writepos(ss->sql, pos)))
+	if (KSQL_OK != (c = ksql_writesz(ss->sql, pos)))
 		return(c);
 	if (KSQLOP_BIND_ZBLOB == op) {
-		c = ksql_writepos(ss->sql, bufsz);
+		c = ksql_writesz(ss->sql, bufsz);
 		if (KSQL_OK != c)
 			return(c);
 	} else if (KSQLOP_BIND_NULL != op) {
-		c = ksql_writepos(ss->sql, bufsz);
+		c = ksql_writesz(ss->sql, bufsz);
 		if (KSQL_OK != c)
 			return(c);
 		c = ksql_writebuf(ss->sql, buf, bufsz);
@@ -725,6 +733,21 @@ ksqlsrv_open(struct ksql *p)
 }
 
 static enum ksqlc
+ksqlsrv_lastid(struct ksql *p)
+{
+	enum ksqlc	 c, cc;
+	int64_t		 id;
+
+	cc = ksql_lastid(p, &id);
+	if (KSQL_OK != (c = ksql_writecode(p, cc)))
+		return(c);
+	/* Mask local error. */
+	if (KSQL_OK != cc)
+		return(KSQL_OK);
+	return(ksql_writebuf(p, &id, sizeof(int64_t)));
+}
+
+static enum ksqlc
 ksqlsrv_bind(struct ksql *p, enum ksqlop op)
 {
 	enum ksqlc	 c;
@@ -735,7 +758,7 @@ ksqlsrv_bind(struct ksql *p, enum ksqlop op)
 
 	if (KSQL_OK != (c = ksql_readptr(p, &ss)))
 		return(c);
-	if (KSQL_OK != (c = ksql_readpos(p, &pos)))
+	if (KSQL_OK != (c = ksql_readsz(p, &pos)))
 		return(c);
 
 	if (KSQLOP_BIND_TEXT == op) {
@@ -743,11 +766,11 @@ ksqlsrv_bind(struct ksql *p, enum ksqlop op)
 			return(c);
 		c = ksql_bind_str(ss, pos, buf);
 	} else if (KSQLOP_BIND_ZBLOB == op) {
-		if (KSQL_OK != (c = ksql_readpos(p, &bufsz)))
+		if (KSQL_OK != (c = ksql_readsz(p, &bufsz)))
 			return(c);
 		c = ksql_bind_zblob(ss, pos, bufsz);
 	} else if (KSQLOP_BIND_NULL != op) {
-		if (KSQL_OK != (c = ksql_readpos(p, &bufsz)))
+		if (KSQL_OK != (c = ksql_readsz(p, &bufsz)))
 			return(c);
 		if (NULL == (buf = malloc(bufsz))) {
 			buf = strerror(errno);
@@ -793,7 +816,7 @@ ksqlsrv_stmt_alloc(struct ksql *p)
 
 	if (KSQL_OK != (c = ksql_readstr(p, &sql)))
 		return(c);
-	if (KSQL_OK != (c = ksql_readpos(p, &id))) {
+	if (KSQL_OK != (c = ksql_readsz(p, &id))) {
 		free(sql);
 		return(c);
 	}
@@ -829,7 +852,7 @@ ksqlsrv_stmt_step(struct ksql *p)
 
 	if (KSQL_OK != (c = ksql_readptr(p, &ss)))
 		return(c);
-	if (KSQL_OK != (c = ksql_readpos(p, &val)))
+	if (KSQL_OK != (c = ksql_readsz(p, &val)))
 		return(c);
 	return(ksql_writecode(p, ksql_step_inner(ss, val)));
 }
@@ -872,7 +895,7 @@ ksqlsrv_stmt_bytes(struct ksql *p)
 
 	if (KSQL_OK != (c = ksql_readptr(p, &stmt)))
 		return(c);
-	if (KSQL_OK != (c = ksql_readpos(p, &col)))
+	if (KSQL_OK != (c = ksql_readsz(p, &col)))
 		return(c);
 	val = ksql_stmt_double(stmt, col);
 	return(ksql_writebuf(p, &val, sizeof(size_t)));
@@ -888,7 +911,7 @@ ksqlsrv_stmt_double(struct ksql *p)
 
 	if (KSQL_OK != (c = ksql_readptr(p, &stmt)))
 		return(c);
-	if (KSQL_OK != (c = ksql_readpos(p, &col)))
+	if (KSQL_OK != (c = ksql_readsz(p, &col)))
 		return(c);
 	val = ksql_stmt_double(stmt, col);
 	return(ksql_writebuf(p, &val, sizeof(double)));
@@ -904,12 +927,11 @@ ksqlsrv_stmt_isnull(struct ksql *p)
 
 	if (KSQL_OK != (c = ksql_readptr(p, &stmt)))
 		return(c);
-	if (KSQL_OK != (c = ksql_readpos(p, &col)))
+	if (KSQL_OK != (c = ksql_readsz(p, &col)))
 		return(c);
 	val = ksql_stmt_isnull(stmt, col);
 	return(ksql_writebuf(p, &val, sizeof(int)));
 }
-
 
 static enum ksqlc
 ksqlsrv_stmt_int(struct ksql *p)
@@ -921,10 +943,38 @@ ksqlsrv_stmt_int(struct ksql *p)
 
 	if (KSQL_OK != (c = ksql_readptr(p, &stmt)))
 		return(c);
-	if (KSQL_OK != (c = ksql_readpos(p, &col)))
+	if (KSQL_OK != (c = ksql_readsz(p, &col)))
 		return(c);
 	val = ksql_stmt_int(stmt, col);
 	return(ksql_writebuf(p, &val, sizeof(int64_t)));
+}
+
+static enum ksqlc
+ksqlsrv_trans_close(struct ksql *p)
+{
+	enum ksqlc	 c, cc;
+	size_t		 type, id;
+
+	if (KSQL_OK != (c = ksql_readsz(p, &type)))
+		return(c);
+	if (KSQL_OK != (c = ksql_readsz(p, &id)))
+		return(c);
+	cc = ksql_trans_close_inner(p, type, id);
+	return(ksql_writecode(p, cc));
+}
+
+static enum ksqlc
+ksqlsrv_trans_open(struct ksql *p)
+{
+	enum ksqlc	 c, cc;
+	size_t		 type, id;
+
+	if (KSQL_OK != (c = ksql_readsz(p, &type)))
+		return(c);
+	if (KSQL_OK != (c = ksql_readsz(p, &id)))
+		return(c);
+	cc = ksql_trans_open_inner(p, type, id);
+	return(ksql_writecode(p, cc));
 }
 
 struct ksql *
@@ -1032,6 +1082,9 @@ ksql_alloc_secure(const struct ksqlcfg *cfg,
 		case (KSQLOP_COL_ISNULL):
 			c = ksqlsrv_stmt_isnull(p);
 			break;
+		case (KSQLOP_LASTID):
+			c = ksqlsrv_lastid(p);
+			break;
 		case (KSQLOP_OPEN):
 			c = ksqlsrv_open(p);
 			break;
@@ -1046,6 +1099,12 @@ ksql_alloc_secure(const struct ksqlcfg *cfg,
 			break;
 		case (KSQLOP_STMT_STEP):
 			c = ksqlsrv_stmt_step(p);
+			break;
+		case (KSQLOP_TRANS_CLOSE):
+			c = ksqlsrv_trans_close(p);
+			break;
+		case (KSQLOP_TRANS_OPEN):
+			c = ksqlsrv_trans_open(p);
 			break;
 		default:
 			abort();
@@ -1344,7 +1403,7 @@ ksql_step_inner(struct ksqlstmt *stmt, size_t cstr)
 		c = ksql_writeptr(stmt->sql, stmt->ptr);
 		if (KSQL_OK != c)
 			return(c);
-		c = ksql_writepos(stmt->sql, cstr);
+		c = ksql_writesz(stmt->sql, cstr);
 		if (KSQL_OK != c)
 			return(c);
 		c = ksql_readcode(stmt->sql, &cc);
@@ -1460,7 +1519,7 @@ ksql_stmt_alloc(struct ksql *p,
 			return(c);
 		if (KSQL_OK != (c = ksql_writestr(p, sql)))
 			return(c);
-		if (KSQL_OK != (c = ksql_writepos(p, id)))
+		if (KSQL_OK != (c = ksql_writesz(p, id)))
 			return(c);
 		if (KSQL_OK != (c = ksql_readcode(p, &cc)))
 			return(c);
@@ -1607,8 +1666,21 @@ ksql_bind_int(struct ksqlstmt *stmt, size_t pos, int64_t val)
 static enum ksqlc
 ksql_trans_close_inner(struct ksql *p, int rollback, size_t id)
 {
-	enum ksqlc	 c;
+	enum ksqlc	 c, cc;
 	char	 	 buf[1024];
+
+	if (KSQLSRV_ISPARENT(p)) {
+		c = ksql_writeop(p, KSQLOP_TRANS_CLOSE);
+		if (KSQL_OK != c)
+			return(c);
+		if (KSQL_OK != (c = ksql_writesz(p, rollback))) 
+			return(c);
+		if (KSQL_OK != (c = ksql_writesz(p, id)))
+			return(c);
+		if (KSQL_OK != (c = ksql_readcode(p, &cc)))
+			return(c);
+		return(cc);
+	}
 
 	if (NULL == p->db) 
 		return(ksql_err(p, KSQL_NOTOPEN, NULL));
@@ -1638,8 +1710,21 @@ ksql_trans_close_inner(struct ksql *p, int rollback, size_t id)
 static enum ksqlc
 ksql_trans_open_inner(struct ksql *p, int immediate, size_t id)
 {
-	enum ksqlc	 c;
+	enum ksqlc	 c, cc;
 	char		 buf[1024];
+
+	if (KSQLSRV_ISPARENT(p)) {
+		c = ksql_writeop(p, KSQLOP_TRANS_OPEN);
+		if (KSQL_OK != c)
+			return(c);
+		if (KSQL_OK != (c = ksql_writesz(p, immediate))) 
+			return(c);
+		if (KSQL_OK != (c = ksql_writesz(p, id)))
+			return(c);
+		if (KSQL_OK != (c = ksql_readcode(p, &cc)))
+			return(c);
+		return(cc);
+	}
 
 	if (NULL == p->db) 
 		return(ksql_err(p, KSQL_NOTOPEN, NULL));
@@ -1693,11 +1778,24 @@ ksql_trans_rollback(struct ksql *p, size_t id)
 enum ksqlc
 ksql_lastid(struct ksql *p, int64_t *id)
 {
+	enum ksqlc	c, cc;
+
+	if (NULL == id)
+		return(KSQL_OK);
+
+	if (KSQLSRV_ISPARENT(p)) {
+		if (KSQL_OK != (c = ksql_writeop(p, KSQLOP_LASTID))) 
+			return(c);
+		if (KSQL_OK != (c = ksql_readcode(p, &cc)))
+			return(c);
+		if (KSQL_OK != cc)
+			return(cc);
+		return(ksql_readbuf(p, id, sizeof(int64_t), 0));
+	}
 
 	if (NULL == p->db) 
 		return(ksql_err(p, KSQL_NOTOPEN, NULL));
-	if (NULL != id)
-		*id = sqlite3_last_insert_rowid(p->db);
+	*id = sqlite3_last_insert_rowid(p->db);
 	return(KSQL_OK);
 }
 
@@ -1719,7 +1817,7 @@ ksql_writecol(struct ksqlstmt *stmt, enum ksqlop op,
 		return(0);
 	if (KSQL_OK != ksql_writeptr(stmt->sql, stmt->ptr))
 		return(0);
-	if (KSQL_OK != ksql_writepos(stmt->sql, col))
+	if (KSQL_OK != ksql_writesz(stmt->sql, col))
 		return(0);
 	if (KSQL_OK != ksql_readbuf(stmt->sql, buf, bufsz, 0))
 		return(0);
