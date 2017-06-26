@@ -123,6 +123,7 @@ done
 
 HAVE_CAPSICUM=
 HAVE_ERR=
+HAVE_INFTIM=
 HAVE_PLEDGE=
 HAVE_PROGNAME=
 HAVE_REALLOCARRAY=
@@ -230,6 +231,7 @@ runtest() {
 
 runtest capsicum	CAPSICUM			  || true
 runtest err		ERR				  || true
+runtest INFTIM		INFTIM				  || true
 runtest pledge		PLEDGE				  || true
 runtest progname	PROGNAME			  || true
 runtest reallocarray	REALLOCARRAY			  || true
@@ -265,6 +267,9 @@ __HEREDOC__
 
 # Now we handle our HAVE_xxxx values.
 # Most will just be defined as 0 or 1.
+
+[ ${HAVE_INFTIM} -eq 0 ] \
+	&& echo "#define INFTIM (-1)"
 
 cat << __HEREDOC__
 #define HAVE_CAPSICUM ${HAVE_CAPSICUM}
