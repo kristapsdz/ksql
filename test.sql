@@ -1,0 +1,5 @@
+CREATE TABLE numbers (
+	foo INTEGER NOT NULL,
+	bar TEXT,
+	id INTEGER PRIMARY KEY
+);
