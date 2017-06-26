@@ -933,7 +933,7 @@ ksqlsrv_stmt_bytes(struct ksql *p)
 		return(c);
 	if (KSQL_OK != (c = ksql_readsz(p, &col)))
 		return(c);
-	val = ksql_stmt_double(stmt, col);
+	val = ksql_stmt_bytes(stmt, col);
 	return(ksql_writebuf(p, &val, sizeof(size_t)));
 }
 
@@ -2027,7 +2027,7 @@ ksql_stmt_blob(struct ksqlstmt *stmt, size_t col)
 	if ( ! KSQLSRV_ISPARENT(stmt->sql))
 		return(sqlite3_column_blob(stmt->stmt, col));
 
-	if (KSQL_OK != ksql_writeop(stmt->sql, KSQLOP_COL_STR))
+	if (KSQL_OK != ksql_writeop(stmt->sql, KSQLOP_COL_BLOB))
 		return(NULL);
 	if (KSQL_OK != ksql_writeptr(stmt->sql, stmt->ptr))
 		return(NULL);
