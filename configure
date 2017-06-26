@@ -124,6 +124,7 @@ done
 HAVE_CAPSICUM=
 HAVE_ERR=
 HAVE_INFTIM=
+HAVE_ARC4RANDOM=
 HAVE_PLEDGE=
 HAVE_PROGNAME=
 HAVE_REALLOCARRAY=
@@ -232,6 +233,7 @@ runtest() {
 runtest capsicum	CAPSICUM			  || true
 runtest err		ERR				  || true
 runtest INFTIM		INFTIM				  || true
+runtest arc4random	ARC4RANDOM			  || true
 runtest pledge		PLEDGE				  || true
 runtest progname	PROGNAME			  || true
 runtest reallocarray	REALLOCARRAY			  || true
@@ -274,6 +276,7 @@ __HEREDOC__
 cat << __HEREDOC__
 #define HAVE_CAPSICUM ${HAVE_CAPSICUM}
 #define HAVE_ERR ${HAVE_ERR}
+#define HAVE_ARC4RANDOM ${HAVE_ARC4RANDOM}
 #define HAVE_PLEDGE ${HAVE_PLEDGE}
 #define HAVE_PROGNAME ${HAVE_PROGNAME}
 #define HAVE_REALLOCARRAY ${HAVE_REALLOCARRAY}
