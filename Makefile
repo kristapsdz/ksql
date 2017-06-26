@@ -41,8 +41,12 @@ SRCS	 = $(MANS) \
 
 all: test libksql.a
 
-test: main.c libksql.a
-	$(CC) $(CFLAGS) -o $@ main.c libksql.a -lsqlite3 
+test: test.c libksql.a test.db
+	$(CC) $(CFLAGS) -o $@ test.c libksql.a -lsqlite3 
+
+test.db: test.sql
+	rm -f $@
+	sqlite3 $@ < test.sql 
 
 libksql.a: ksql.o
 	$(AR) rs $@ ksql.o
