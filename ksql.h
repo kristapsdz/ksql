@@ -1,6 +1,6 @@
 /*	$Id$ */
 /*
- * Copyright (c) 2016 Kristaps Dzonsons <kristaps@bsd.lv>
+ * Copyright (c) 2016--2017 Kristaps Dzonsons <kristaps@bsd.lv>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -55,7 +55,7 @@ struct	ksqlstmt;
 __BEGIN_DECLS
 
 struct ksql	*ksql_alloc(const struct ksqlcfg *);
-struct ksql	*ksql_alloc_secure(const struct ksqlcfg *, void(*)(void *), void *);
+struct ksql	*ksql_alloc_child(const struct ksqlcfg *, void(*)(void *), void *);
 enum ksqlc	 ksql_bind_blob(struct ksqlstmt *, 
 			size_t, const void *, size_t);
 enum ksqlc	 ksql_bind_double(struct ksqlstmt *, size_t, double);

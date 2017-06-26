@@ -1080,7 +1080,7 @@ ksqlsrv_trans_open(struct ksql *p)
 }
 
 struct ksql *
-ksql_alloc_secure(const struct ksqlcfg *cfg,
+ksql_alloc_child(const struct ksqlcfg *cfg,
 	void (*cb)(void *), void *arg)
 {
 	struct ksql	*p;
