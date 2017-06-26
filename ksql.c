@@ -22,14 +22,10 @@
 #include <sys/wait.h>
 
 #include <assert.h>
-#if HAVE_ERR
-# include <err.h> /* XXX: debugging */
-#endif
 #include <errno.h>
 #if ! HAVE_SOCK_NONBLOCK
 # include <fcntl.h>
 #endif
-#include <inttypes.h> /* XXX: debugging */
 #include <poll.h>
 #include <setjmp.h>
 #include <signal.h>
@@ -1105,22 +1101,18 @@ ksql_alloc_secure(const struct ksqlcfg *cfg,
 		return(NULL);
 
 #if ! HAVE_SOCK_NONBLOCK
-	warnx("1");
 	if (-1 == fcntl(fd[0], F_SETFL, 
 	    fcntl(fd[0], F_GETFL, 0) | O_NONBLOCK)) {
-		warn(NULL);
 		close(fd[0]);
 		close(fd[1]);
 		return(NULL);
 	}
-	warnx("2");
 	if (-1 == fcntl(fd[1], F_SETFL, 
 	    fcntl(fd[1], F_GETFL, 0) | O_NONBLOCK)) {
 		close(fd[0]);
 		close(fd[1]);
 		return(NULL);
 	}
-	warnx("3");
 #endif
 
 	if (-1 == (pid = fork())) {
