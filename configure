@@ -124,6 +124,7 @@ done
 HAVE_CAPSICUM=
 HAVE_ERR=
 HAVE_INFTIM=
+HAVE_SOCK_NONBLOCK=
 HAVE_ARC4RANDOM=
 HAVE_PLEDGE=
 HAVE_PROGNAME=
@@ -233,6 +234,7 @@ runtest() {
 runtest capsicum	CAPSICUM			  || true
 runtest err		ERR				  || true
 runtest INFTIM		INFTIM				  || true
+runtest SOCK_NONBLOCK	SOCK_NONBLOCK			  || true
 runtest arc4random	ARC4RANDOM			  || true
 runtest pledge		PLEDGE				  || true
 runtest progname	PROGNAME			  || true
