@@ -1,3 +1,19 @@
+/*	$Id$ */
+/*
+ * Copyright (c) 2017 Kristaps Dzonsons <kristaps@bsd.lv>
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHORS DISCLAIM ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
 #include "config.h"
 
 #if HAVE_ERR
@@ -20,6 +36,7 @@ main(void)
 	struct ksqlstmt	*stmt;
 	char		 buf[64];
 	uint32_t	 val;
+	int64_t		 id;
 
 #if ! HAVE_ARC4RANDOM
 	srandom(getpid());
@@ -30,13 +47,14 @@ main(void)
 	cfg.err = ksqlitemsg;
 	cfg.dberr = ksqlitedbmsg;
 
-	if (NULL == (sql = ksql_alloc_secure(&cfg, NULL, NULL)))
-		errx(EXIT_FAILURE, "ksql_alloc_secure");
+	if (NULL == (sql = ksql_alloc_child(&cfg, NULL, NULL)))
+		errx(EXIT_FAILURE, "ksql_alloc_child");
 
 	if (KSQL_OK != ksql_open(sql, "test.db"))
 		errx(EXIT_FAILURE, "ksql_open");
 
-	if (KSQL_OK != ksql_stmt_alloc(sql, &stmt, "INSERT INTO numbers (foo,bar) VALUES (?,?)", 1))
+	if (KSQL_OK != ksql_stmt_alloc(sql, &stmt, 
+	    "INSERT INTO numbers (foo,bar,baz) VALUES (?,?,?)", 1))
 		errx(EXIT_FAILURE, "ksql_stmt_alloc");
 	for (i = 0; i < 10; i++) {
 #if HAVE_ARC4RANDOM
@@ -44,7 +62,6 @@ main(void)
 #else
 		val = random();
 #endif
-		warnx("binding: (1): %" PRIu32, val);
 		if (KSQL_OK != ksql_bind_int(stmt, 0, val))
 			errx(EXIT_FAILURE, "ksql_bind_int");
 #if HAVE_ARC4RANDOM
@@ -53,30 +70,52 @@ main(void)
 		val = random();
 #endif
 		snprintf(buf, sizeof(buf), "%" PRIu32, val);
-		if (buf[0] < '5') {
-			warnx("binding: (2): %s", buf);
+		if (0 == (val % 2)) {
 			if (KSQL_OK != ksql_bind_str(stmt, 1, buf))
 				errx(EXIT_FAILURE, "ksql_bind_str");
+			if (KSQL_OK != ksql_bind_blob
+			    (stmt, 2, buf, strlen(buf) + 1))
+				errx(EXIT_FAILURE, "ksql_bind_str");
+			printf("Bind (%zu:2): %zu bytes -> %s\n", i,
+				strlen(buf) + 1, buf);
 		} else {
-			warnx("binding: (2): ----");
 			if (KSQL_OK != ksql_bind_null(stmt, 1))
 				errx(EXIT_FAILURE, "ksql_bind_null");
+			if (KSQL_OK != ksql_bind_zblob
+		   	    (stmt, 2, strlen(buf) + 1))
+				errx(EXIT_FAILURE, "ksql_bind_str");
+			printf("Bind (%zu:2): (null) %zu bytes -> %s\n", i,
+				strlen(buf) + 1, buf);
 		}
 		if (KSQL_DONE != ksql_stmt_step(stmt))
 			errx(EXIT_FAILURE, "ksql_stmt_step");
+		if (KSQL_OK != ksql_lastid(sql, &id))
+			errx(EXIT_FAILURE, "ksql_lastid");
+		printf("Result (%zu): %" PRId64 "\n", i, id);
 		if (KSQL_OK != ksql_stmt_reset(stmt))
 			errx(EXIT_FAILURE, "ksql_stmt_reset");
 	}
 	if (KSQL_OK != ksql_stmt_free(stmt))
 		errx(EXIT_FAILURE, "ksql_stmt_free");
 
-	if (KSQL_OK != ksql_stmt_alloc(sql, &stmt, "SELECT foo,bar,id FROM numbers", 0))
+	if (KSQL_OK != ksql_stmt_alloc(sql, &stmt, 
+	    "SELECT foo,bar,baz,id FROM numbers", 0))
 		errx(EXIT_FAILURE, "ksql_stmt_alloc");
+
+	i = 0;
 	while (KSQL_ROW == ksql_stmt_step(stmt)) {
-		warnx("step (1): %" PRId64, ksql_stmt_int(stmt, 0));
-		warnx("step (2): %s", ksql_stmt_str(stmt, 1));
-		warnx("step (3): %" PRId64, ksql_stmt_int(stmt, 2));
+		printf("Step (%zu:1): %" PRId64 "\n", i,
+			ksql_stmt_int(stmt, 0));
+		printf("Step (%zu:2): %s\n", i,
+			ksql_stmt_str(stmt, 1));
+		printf("Step (%zu:3): [%s] (%zu)\n", i,
+			(const char *)ksql_stmt_blob(stmt, 2),
+			ksql_stmt_bytes(stmt, 2));
+		printf("Step (%zu:4): %" PRId64 "\n", i,
+			ksql_stmt_int(stmt, 3));
+		i++;
 	}
+
 	if (KSQL_OK != ksql_stmt_free(stmt))
 		errx(EXIT_FAILURE, "ksql_stmt_free");
 
