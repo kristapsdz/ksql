@@ -69,7 +69,7 @@ and
 Invoke
 .Dq apropos ksql 
 to see all functions.
-.Pp
+.Ss Database safety
 By default,
 .Nm ksql
 will trigger calls to
@@ -77,14 +77,15 @@ will trigger calls to
 if any of the database functions fail.
 It will also register an
 .Xr atexit 3
-hook that will clean up any open database connections and make sure that
+hook that will clean up any open database connections, transactions, and
+open statements and make sure that
 .Dv SIGABRT
 and
 .Dv SIGSEGV
 signals are intercepted and trigger a controlled exit.
 Thus, if your program fails while performing (say) transactions, or any
 sort of open database, you won't corrupt the data.
-.Pp
+.Ss Compiling
 To compile with
 .Nm ksql ,
 use the header file
@@ -92,10 +93,25 @@ use the header file
 and link to
 .Fl l Ns Ar ksql
 .Fl l Ns Ar sqlite3 .
-This library is not thread-safe and does not plan to be.
-If you're using Linux, you'll also need to link
-.Fl l Ns Ar bsd ,
-which is used for some minor purposes.
+.Ss Access protocol
+Since SQLite uses a busy-wait approach,
+.Nm
+will sleep for random intervals between attempts returning
+.Dv SQLITE_BUSY
+or
+.Dv SQLITE_LOCKED .
+Within the first 10 attempts, the random interval is within 1/4 second.
+Within the 10\(en100 attempts, within 1/10 second.
+Greater than 100 attempts, 1/100 second.
+This scheme benefits longer waiters.
+.Pp
+Functions using this algorithm are
+.Xr ksql_exec 3 ,
+.Xr ksql_stmt_step 3
+and
+.Xr ksql_stmt_cstep 3 ,
+and
+.Xr ksql_stmt_alloc 3 .
 .\" .Sh CONTEXT
 .\" For section 9 functions only.
 .\" .Sh IMPLEMENTATION NOTES
@@ -118,7 +134,8 @@ which is used for some minor purposes.
 .\" .Sh STANDARDS
 .\" .Sh HISTORY
 .\" .Sh AUTHORS
-.\" .Sh CAVEATS
+.Sh CAVEATS
+This library is not thread-safe and does not plan to be.
 .\" .Sh BUGS
 .\" .Sh SECURITY CONSIDERATIONS
 .\" Not used in OpenBSD.
