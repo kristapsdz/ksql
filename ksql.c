@@ -21,12 +21,14 @@
 #include <sys/socket.h>
 #include <sys/wait.h>
 
+#include <assert.h>
 #if HAVE_ERR
 # include <err.h> /* XXX: debugging */
 #endif
-
-#include <assert.h>
 #include <errno.h>
+#if ! HAVE_SOCK_NONBLOCK
+# include <fcntl.h>
+#endif
 #include <inttypes.h> /* XXX: debugging */
 #include <poll.h>
 #include <setjmp.h>
@@ -1091,12 +1093,37 @@ ksql_alloc_secure(const struct ksqlcfg *cfg,
 	enum ksqlop	 op;
 	pid_t		 pid;
 	enum ksqlc	 c;
+	int		 flags = SOCK_STREAM;
+
+#if HAVE_SOCK_NONBLOCK
+	flags |= SOCK_NONBLOCK;
+#endif
 
 	/* Begin by setting up our parent/child with a comm. */
 
-	if (-1 == socketpair(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0, fd)) {
+	if (-1 == socketpair(AF_UNIX, flags, 0, fd))
 		return(NULL);
-	} else if (-1 == (pid = fork())) {
+
+#if ! HAVE_SOCK_NONBLOCK
+	warnx("1");
+	if (-1 == fcntl(fd[0], F_SETFL, 
+	    fcntl(fd[0], F_GETFL, 0) | O_NONBLOCK)) {
+		warn(NULL);
+		close(fd[0]);
+		close(fd[1]);
+		return(NULL);
+	}
+	warnx("2");
+	if (-1 == fcntl(fd[1], F_SETFL, 
+	    fcntl(fd[1], F_GETFL, 0) | O_NONBLOCK)) {
+		close(fd[0]);
+		close(fd[1]);
+		return(NULL);
+	}
+	warnx("3");
+#endif
+
+	if (-1 == (pid = fork())) {
 		close(fd[0]);
 		close(fd[1]);
 		return(NULL);
