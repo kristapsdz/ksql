@@ -1,8 +1,13 @@
-#include <err.h>
+#include "config.h"
+
+#if HAVE_ERR
+# include <err.h>
+#endif
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "ksql.h"
 
@@ -15,6 +20,10 @@ main(void)
 	struct ksqlstmt	*stmt;
 	char		 buf[64];
 	uint32_t	 val;
+
+#ifndef HAVE_ARC4RANDOM
+	srandom(getpid());
+#endif
 
 	memset(&cfg, 0, sizeof(struct ksqlcfg));
 	cfg.flags = KSQL_EXIT_ON_ERR | KSQL_SAFE_EXIT;
@@ -30,11 +39,20 @@ main(void)
 	if (KSQL_OK != ksql_stmt_alloc(sql, &stmt, "INSERT INTO numbers (foo,bar) VALUES (?,?)", 1))
 		errx(EXIT_FAILURE, "ksql_stmt_alloc");
 	for (i = 0; i < 10; i++) {
+#ifdef HAVE_ARC4RANDOM
 		val = arc4random();
+#else
+		val = random();
+#endif
 		warnx("binding: (1): %" PRIu32, val);
 		if (KSQL_OK != ksql_bind_int(stmt, 0, val))
 			errx(EXIT_FAILURE, "ksql_bind_int");
-		snprintf(buf, sizeof(buf), "%" PRIu32, arc4random());
+#ifdef HAVE_ARC4RANDOM
+		val = arc4random();
+#else
+		val = random();
+#endif
+		snprintf(buf, sizeof(buf), "%" PRIu32, val);
 		if (buf[0] < '5') {
 			warnx("binding: (2): %s", buf);
 			if (KSQL_OK != ksql_bind_str(stmt, 1, buf))

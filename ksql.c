@@ -21,7 +21,9 @@
 #include <sys/socket.h>
 #include <sys/wait.h>
 
-#include <err.h> /* XXX: debugging */
+#if HAVE_ERR
+# include <err.h> /* XXX: debugging */
+#endif
 
 #include <assert.h>
 #include <errno.h>
