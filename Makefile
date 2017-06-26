@@ -38,18 +38,23 @@ SRCS	 = $(MANS) \
 	   ksql.c \
 	   ksql.h \
 	   Makefile
+COMPAT	 = compat_err.o \
+	   compat_progname.o \
+	   compat_reallocarray.o
 
-all: test libksql.a
+all: test libksql.a test.db
 
-test: test.c libksql.a test.db config.h
-	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ test.c libksql.a -lsqlite3 
+test: test.c $(COMPAT) libksql.a
+	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ test.c $(COMPAT) libksql.a -lsqlite3 
 
 test.db: test.sql
 	rm -f $@
 	sqlite3 $@ < test.sql 
 
-libksql.a: ksql.o config.h
-	$(AR) rs $@ ksql.o
+libksql.a: ksql.o $(COMPAT)
+	$(AR) rs $@ ksql.o $(COMPAT)
+
+$(COMPAT) ksql.o test: config.h
 
 www: $(HTMLS) ksql.tar.gz
 
