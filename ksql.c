@@ -1284,7 +1284,7 @@ static enum ksqlc
 ksql_close_inner(struct ksql *p, int onexit)
 {
 	struct ksqlstmt	*stmt;
-	char		 buf[PATH_MAX];
+	char		 buf[128];
 	enum ksqlc	 haserrs = KSQL_OK, c;
 	int		 ischild;
 
