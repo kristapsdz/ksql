@@ -30,9 +30,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#ifdef __linux__
-# include <bsd/stdlib.h>
-#endif
 #include <string.h>
 #include <unistd.h>
 
