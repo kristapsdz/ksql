@@ -21,7 +21,7 @@ main(void)
 	char		 buf[64];
 	uint32_t	 val;
 
-#ifndef HAVE_ARC4RANDOM
+#if ! HAVE_ARC4RANDOM
 	srandom(getpid());
 #endif
 
@@ -39,7 +39,7 @@ main(void)
 	if (KSQL_OK != ksql_stmt_alloc(sql, &stmt, "INSERT INTO numbers (foo,bar) VALUES (?,?)", 1))
 		errx(EXIT_FAILURE, "ksql_stmt_alloc");
 	for (i = 0; i < 10; i++) {
-#ifdef HAVE_ARC4RANDOM
+#if HAVE_ARC4RANDOM
 		val = arc4random();
 #else
 		val = random();
@@ -47,7 +47,7 @@ main(void)
 		warnx("binding: (1): %" PRIu32, val);
 		if (KSQL_OK != ksql_bind_int(stmt, 0, val))
 			errx(EXIT_FAILURE, "ksql_bind_int");
-#ifdef HAVE_ARC4RANDOM
+#if HAVE_ARC4RANDOM
 		val = arc4random();
 #else
 		val = random();
