@@ -14,6 +14,8 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
+#include "config.h"
+
 #include <sys/param.h>
 #include <sys/queue.h>
 #include <sys/socket.h>
@@ -1270,7 +1272,11 @@ ksql_alloc(const struct ksqlcfg *cfg)
 		ksql_jmp_end();
 	}
 
+#ifdef ARC4RANDOM
 	srandom(arc4random());
+#else
+	srandom(getpid());
+#endif
 
 	TAILQ_INIT(&p->stmt_used);
 	TAILQ_INIT(&p->stmt_free);
@@ -1283,7 +1289,6 @@ ksql_close_inner(struct ksql *p, int onexit)
 	struct ksqlstmt	*stmt;
 	char		 buf[128];
 	enum ksqlc	 haserrs = KSQL_OK, c;
-	int		 ischild;
 
 	if (NULL == p)
 		return(KSQL_OK);
@@ -1293,8 +1298,6 @@ ksql_close_inner(struct ksql *p, int onexit)
 	 * It's either that or single-process mode.
 	 * This is *never* called for the parent in split-process mode.
 	 */
-
-	ischild = KSQLSRV_ISCHILD(p);
 
 	if (onexit)
 		ksql_err_noexit(p, KSQL_EXIT, NULL);
