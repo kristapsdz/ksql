@@ -2,6 +2,27 @@
 <articles>
 	<article data-sblg-article="1" data-sblg-tags="version">
 		<header>
+			<h1>0.1.0</h1>
+			<address>Kristaps Dzonsons</address>
+			<time datetime="2016-04-19">2016-04-19</time>
+		</header>
+		<aside>
+			<p>
+				The <code>ksql_stmt_free</code> and <code>ksql_stmt_reset</code> functions now return a status code.
+				The former also accepts NULL (in the tradition of free functions).
+				Moreover, change the return value for <code>ksql_stmt_str</code> to be a <code>const</code> pointer.
+			</p>
+			<p>
+				Add the <code>ksql_trace</code> and <code>ksql_untrace</q> for tracing database operations directly.
+			</p>
+			<p>
+				Fix bad self-references in the <q>bind</q> manpages and also note memory usage for <code>ksql_bind_str</code>,
+				<code>ksql_bind_blob</q>, <code>ksql_stmt_str</code>, and <code>ksql_stmt_blob</code>.
+			</p>
+		</aside>
+	</article>
+	<article data-sblg-article="1" data-sblg-tags="version">
+		<header>
 			<h1>0.0.6</h1>
 			<address>Kristaps Dzonsons</address>
 			<time datetime="2016-04-19">2016-04-19</time>
