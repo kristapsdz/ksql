@@ -29,32 +29,32 @@
 .Sh SYNOPSIS
 .In ksql.h
 .Ft "enum ksqlc"
-.Fo ksql_stmt_blob
+.Fo ksql_bind_blob
 .Fa "struct ksql_stmt *stmt"
 .Fa "size_t col"
 .Fa "const void *val"
 .Fa "size_t valsz"
 .Fc
 .Ft "enum ksqlc"
-.Fo ksql_stmt_double
+.Fo ksql_bind_double
 .Fa "struct ksql_stmt *stmt"
 .Fa "size_t col"
 .Fa "double val"
 .Fc
 .Ft "enum ksqlc"
-.Fo ksql_stmt_int
+.Fo ksql_bind_int
 .Fa "struct ksql_stmt *stmt"
 .Fa "size_t col"
 .Fa "int64_t val"
 .Fc
 .Ft "enum ksqlc"
-.Fo ksql_stmt_str
+.Fo ksql_bind_str
 .Fa "struct ksql_stmt *stmt"
 .Fa "size_t col"
 .Fa "const char *val"
 .Fc
 .Ft "enum ksqlc"
-.Fo ksql_stmt_zblob
+.Fo ksql_bind_zblob
 .Fa "struct ksql_stmt *stmt"
 .Fa "size_t col"
 .Fa "size_t valsz"
@@ -77,6 +77,13 @@ in SQLite, binding occurs starting at column one.
 In these functions, for consistency with
 .Xr ksql_stmt_double 3
 and friends, it starts at zero.
+.Pp
+In
+.Nm ksql_bind_blob
+and
+.Nm ksql_bind_str ,
+the contents not copied, so the memory used must be valid until
+.Xr ksql_stmt_step 3 .
 .\" .Sh CONTEXT
 .\" For section 9 functions only.
 .\" .Sh IMPLEMENTATION NOTES
