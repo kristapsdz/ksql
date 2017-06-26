@@ -1,8 +1,8 @@
 .SUFFIXES: .3 .3.html .html .xml
 
-PREFIX	?= /usr/local
+include Makefile.configure
+
 VERSION	 = 0.0.9
-CFLAGS	+= -g -W -Wall
 BUILT	 = index.css \
 	   mandoc.css
 HTMLS	 = index.html \
@@ -41,23 +41,23 @@ SRCS	 = $(MANS) \
 
 all: test libksql.a
 
-test: test.c libksql.a test.db
-	$(CC) $(CFLAGS) -o $@ test.c libksql.a -lsqlite3 
+test: test.c libksql.a test.db config.h
+	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ test.c libksql.a -lsqlite3 
 
 test.db: test.sql
 	rm -f $@
 	sqlite3 $@ < test.sql 
 
-libksql.a: ksql.o
+libksql.a: ksql.o config.h
 	$(AR) rs $@ ksql.o
 
 www: $(HTMLS) ksql.tar.gz
 
 installwww: www
 	mkdir -p $(PREFIX)/snapshots
-	install -m 0444 $(HTMLS) $(BUILT) $(PREFIX)
-	install -m 0444 ksql.tar.gz $(PREFIX)/snapshots
-	install -m 0444 ksql.tar.gz $(PREFIX)/snapshots/ksql-$(VERSION).tar.gz
+	$(INSTALL_DATA) $(HTMLS) $(BUILT) $(PREFIX)
+	$(INSTALL_DATA) ksql.tar.gz $(PREFIX)/snapshots
+	$(INSTALL_DATA) ksql.tar.gz $(PREFIX)/snapshots/ksql-$(VERSION).tar.gz
 
 ksql.tar.gz:
 	mkdir -p .dist/ksql-$(VERSION)
@@ -71,12 +71,15 @@ install: libksql.a
 	mkdir -p $(PREFIX)/lib
 	mkdir -p $(PREFIX)/include
 	mkdir -p $(PREFIX)/man/man3
-	install -m 0444 libksql.a $(PREFIX)/lib
-	install -m 0444 ksql.h $(PREFIX)/include
-	install -m 0444 $(MANS) $(PREFIX)/man/man3
+	$(INSTALL_LIB) libksql.a $(PREFIX)/lib
+	$(INSTALL_DATA) ksql.h $(PREFIX)/include
+	$(INSTALL_DATA) $(MANS) $(PREFIX)/man/man3
 
 clean:
 	rm -f libksql.a ksql.o $(HTMLS) ksql.tar.gz test
+
+distclean: clean
+	rm -f Makefile.configure config.h config.log
 
 .3.3.html:
 	mandoc -Ostyle=mandoc.css -Thtml $< >$@
