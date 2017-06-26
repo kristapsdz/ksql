@@ -261,8 +261,7 @@ __HEREDOC__
 
 # For the function declaration variables...
 
-[ ${HAVE_REALLOCARRAY} -eq 0 ]
-	&& echo "#include <sys/types.h>"
+[ ${HAVE_REALLOCARRAY} -eq 0 ] && echo "#include <sys/types.h>"
 
 # Now we handle our HAVE_xxxx values.
 # Most will just be defined as 0 or 1.
