@@ -3,5 +3,5 @@
 int
 main(void)
 {
-	return !!arc4random();
+	return (arc4random() + 1) ? 0 : 1;
 }
