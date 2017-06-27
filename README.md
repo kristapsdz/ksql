@@ -11,10 +11,9 @@ application failure by using the
 Download the latest version's 
 [source archive](http://kristaps.bsd.lv/ksql/snapshots/ksql.tar.gz) 
 or download the project from GitHub.
-
-Then run the configuration script with `./configure`.
-(See the `configure` script for details.)
-
+Then run the configuration script with `./configure`.  (See the
+[configure](https://github.com/kristapsdz/ksql/blob/master/configure)
+script for details.)
 Finally, compile with `make`, then `sudo make install` (or `doas make
 install`, whatever the case may be).
 
