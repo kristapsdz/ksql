@@ -1150,6 +1150,13 @@ ksql_alloc_child(const struct ksqlcfg *cfg,
 	if (NULL != cb)
 		(*cb)(arg);
 
+#if HAVE_PLEDGE
+	if (-1 == pledge("stdio rpath cpath wpath flock fattr", NULL)) {
+		close(comm);
+		exit(EXIT_FAILURE);
+	}
+#endif
+
 	/* Wipe all of our parent context *except* stderr. */
 
 	close(STDIN_FILENO);
