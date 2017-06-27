@@ -1,6 +1,6 @@
 .\"	$Id$
 .\"
-.\" Copyright (c) 2016 Kristaps Dzonsons <kristaps@bsd.lv>
+.\" Copyright (c) 2017 Kristaps Dzonsons <kristaps@bsd.lv>
 .\"
 .\" Permission to use, copy, modify, and distribute this software for any
 .\" purpose with or without fee is hereby granted, provided that the above
@@ -15,55 +15,30 @@
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
 .Dd $Mdocdate$
-.Dt KSQL_TRANS_COMMIT 3
+.Dt KSQL_UNTRACE 3
 .Os
 .Sh NAME
-.Nm ksql_trans_commit ,
-.Nm ksql_trans_rollback
-.Nd close a database transaction
+.Nm ksql_untrace
+.Nd disable SQLite logging
 .Sh LIBRARY
 .Lb ksql
 .Sh SYNOPSIS
 .In stdint.h
 .In ksql.h
-.Ft enum ksqlc
-.Fo ksql_trans_commit
-.Fa "struct ksql *sql"
-.Fa "size_t id"
-.Fc
-.Ft enum ksqlc
-.Fo ksql_trans_rollback
-.Fa "struct ksql *sql"
-.Fa "size_t id"
+.Ft void
+.Fo ksql_untrace
 .Fc
 .Sh DESCRIPTION
 The
-.Nm ksql_trans_commit
-and
-.Nm ksql_trans_functions
-functions commit or roll-back active database transactions as opened with
-.Xr ksql_trans_open 3 .
-It is an error to try to close a transaction that has not been opened.
-This follows the same underlying execution logic of
-.Xr ksql_exec 3 .
-The
-.Fa id
-value is used in reporting errors and making sure that transaction calls
-are symmetric.
+.Nm
+function disables SQLite's logging/tracing facility.
+Should follow calls to
+.Xr ksql_trace 3 .
 .\" .Sh CONTEXT
 .\" For section 9 functions only.
 .\" .Sh IMPLEMENTATION NOTES
 .\" Not used in OpenBSD.
-.Sh RETURN VALUES
-This returns
-.Dv KSQL_NOTOPEN
-if the database connection is not open,
-.Dv KSQL_TRANS
-if a transaction is not yet open,
-.Dv KSQL_DB
-if errors occurred on the database, or
-.Dv KSQL_OK
-on success.
+.\" .Sh RETURN VALUES
 .\" For sections 2, 3, and 9 function return values only.
 .\" .Sh ENVIRONMENT
 .\" For sections 1, 6, 7, and 8 only.
@@ -76,8 +51,7 @@ on success.
 .\" .Sh ERRORS
 .\" For sections 2, 3, 4, and 9 errno settings only.
 .Sh SEE ALSO
-.Xr sqlite3_exec 3
-.\" .Xr foobar 1
+.Xr ksql_trace 3
 .\" .Sh STANDARDS
 .\" .Sh HISTORY
 .\" .Sh AUTHORS
