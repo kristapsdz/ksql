@@ -19,10 +19,13 @@ HTMLS	 = index.html \
 	   ksql_stmt_double.3.html \
 	   ksql_stmt_free.3.html \
 	   ksql_stmt_reset.3.html \
+	   ksql_trace.3.html \
 	   ksql_trans_commit.3.html \
-	   ksql_trans_open.3.html
+	   ksql_trans_open.3.html \
+	   ksql_untrace.3.html
 MANS	 = ksql.3 \
 	   ksql_alloc.3 \
+	   ksql_alloc_child.3 \
 	   ksql_bind_double.3 \
 	   ksql_close.3 \
 	   ksql_exec.3 \
@@ -33,11 +36,27 @@ MANS	 = ksql.3 \
 	   ksql_stmt_double.3 \
 	   ksql_stmt_free.3 \
 	   ksql_stmt_reset.3 \
+	   ksql_trace.3 \
 	   ksql_trans_commit.3 \
-	   ksql_trans_open.3
+	   ksql_trans_open.3 \
+	   ksql_untrace.3
 SRCS	 = $(MANS) \
 	   ksql.c \
 	   ksql.h \
+	   compat_err.c \
+	   compat_progname.c \
+	   compat_reallocarray.c \
+	   test-INFTIM.c \
+	   test-SOCK_NONBLOCK.c \
+	   test-arc4random.c \
+	   test-capsicum.c \
+	   test-err.c \
+	   test-pledge.c \
+	   test-progname.c \
+	   test-reallocarray.c \
+	   test-sandbox_init.c \
+	   test.c \
+	   test.sql \
 	   Makefile
 COMPAT	 = compat_err.o \
 	   compat_progname.o \
@@ -68,6 +87,7 @@ installwww: www
 ksql.tar.gz:
 	mkdir -p .dist/ksql-$(VERSION)
 	install -m 0644 $(SRCS) .dist/ksql-$(VERSION)
+	install -m 0755 configure .dist/ksql-$(VERSION)
 	( cd .dist && tar zvcf ../$@ . )
 	rm -rf .dist
 
@@ -82,7 +102,7 @@ install: libksql.a
 	$(INSTALL_DATA) $(MANS) $(PREFIX)/man/man3
 
 clean:
-	rm -f libksql.a ksql.o $(HTMLS) ksql.tar.gz test
+	rm -f libksql.a $(COMPAT) ksql.o $(HTMLS) ksql.tar.gz test
 
 distclean: clean
 	rm -f Makefile.configure config.h config.log
