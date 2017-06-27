@@ -466,27 +466,26 @@ ksql_readbuf(struct ksql *p, void *buf, size_t sz, int eofok)
 			return(ksql_err(p, KSQL_SYSTEM, msg));
 		}
 
-		if (POLLIN & pfd.revents) {
+		if (POLLERR & pfd.revents) {
+			msg = "poll error";
+			return(ksql_err(p, KSQL_SYSTEM, msg));
+		} 
+
+		if ((POLLIN & pfd.revents) ||
+		    (POLLHUP & pfd.revents)) {
 			ssz = read(pfd.fd, buf + rsz, sz - rsz);
 			if (ssz < 0) {
 				msg = strerror(errno);
 				return(ksql_err(p, KSQL_SYSTEM, msg));
+			} else if (ssz > 0) {
+				rsz += (size_t)ssz;
+				continue;
 			}
-			rsz += (size_t)ssz;
+			if (eofok && 0 == rsz)
+				return(KSQL_EOF);
+			msg = "poll hup with pending data";
+			return(ksql_err(p, KSQL_SYSTEM, msg));
 		}
-
-		/* Errors in poll? */
-
-		if (POLLHUP & pfd.revents && eofok)
-			return(KSQL_EOF);
-
-		if (POLLHUP & pfd.revents) {
-			msg = "poll hup";
-			return(ksql_err(p, KSQL_SYSTEM, msg));
-		} else if (POLLERR & pfd.revents) {
-			msg = "poll error";
-			return(ksql_err(p, KSQL_SYSTEM, msg));
-		} 
 	}
 
 	return(KSQL_OK);
