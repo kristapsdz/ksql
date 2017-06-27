@@ -2,12 +2,13 @@
 
 include Makefile.configure
 
-VERSION	 = 0.0.9
+VERSION	 = 0.1.0
 BUILT	 = index.css \
 	   mandoc.css
 HTMLS	 = index.html \
 	   ksql.3.html \
 	   ksql_alloc.3.html \
+	   ksql_alloc_child.3.html \
 	   ksql_bind_double.3.html \
 	   ksql_close.3.html \
 	   ksql_exec.3.html \
