@@ -18,7 +18,8 @@
 				Moreover, change the return value for <code>ksql_stmt_str</code> to be a <code>const</code> pointer.
 			</p>
 			<p>
-				Add the <code>ksql_trace</code> and <code>ksql_untrace</code> for tracing database operations directly.
+				Add the <a href="ksql_trace.3.html">ksql_trace</a> and <a href="ksql_untrace.3.html">ksql_untrace</a> for
+				tracing database operations directly.
 			</p>
 			<p>
 				Fix bad self-references in the <q>bind</q> manpages and also note memory usage for <code>ksql_bind_str</code>,
