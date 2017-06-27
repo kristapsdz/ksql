@@ -1,14 +1,11 @@
 html, body				{ height: 100%;
 					  margin: 0; }
-body 					{ display: flex;
-					  flex-direction: column; 
-					  font-family: Calibri, Candara, Segoe, Segoe UI, Optima, Arial, sans-serif; 
-					  font-size: 14px;
-					  font-weight: 400;
+body 					{ font-family: 'Alegreya sans', sans-serif;
+					  font-weight: 300;
 					  color: #ddd;
 					  background-color: #1F2321; }
 #nav					{ background-color: #1A1A1A; 
-					  padding: 1em;
+					  padding: 1em 20%;
 					  color: #dd9400; }
 #nav label				{ cursor: pointer; }
 #nav label:hover,
@@ -24,8 +21,8 @@ body 					{ display: flex;
 					  margin: 0;
 					  padding: 0; }
 #nav .menu > li				{ display: table-cell;
-					  padding-left: 1em;
 					  vertical-align: middle; }
+#nav .menu > li + li			{ padding-left: 1em; }
 #nav .menu li				{ position: relative; }
 #nav .menu li > ul			{ position: absolute;
 				 	  left: 0;
@@ -43,32 +40,31 @@ nav[data-sblg-nav] ul			{ list-style-type: none;
 					  color: #aaa;
 					  padding: 0; 
 					  padding-top: 12pt; }
+nav[data-sblg-nav] li > div:first-child	{ color: #fff; }
 nav[data-sblg-nav] div > p:first-child	{ margin-top: 0.5em; }
 h1					{ margin: 0; 
+				 	  margin-top: 1em;
 					  font-weight: normal;
 					  font-size: 60pt; }
 header > *				{ display: inline-block; }
-header					{ font-family: Garamond, Baskerville, Baskerville Old Face, Hoefler Text, Times New Roman, serif; 
-					  color: #aaa; 
-					  font-size: 16pt; }
-article					{ flex: 1; 
-					  font-family: Candara, Calibri, Segoe, Segoe UI, Optima, Arial, sans-serif;
-					  line-height: 18pt;
-					  font-size: 12pt;
-					  padding: 0 8%; }
-article > section			{ display: table; 
-					  height: 100%; }
-article > section > div			{ display: table-cell;
-					  vertical-align: middle; }
-a					{ text-decoration: none; 
-				 	  color: red; }
-#nav a					{ color: inherit; }
+header					{ color: #aaa; 
+					  font-size: x-large; }
+article					{ padding: 0 20%; }
+article > section			{ }
+article > section > div			{ }
+a					{ color: orange; }
+#nav a					{ color: inherit; 
+					  text-decoration: none; }
 footer					{ padding: 2em;
 				 	  opacity: 0.8;
 					  text-align: center; }
 footer img				{ margin-top: 5px; }
+
 @media only screen and (max-width: 760px), only screen and (max-device-width: 760px) {
-h1					{ font-size: 32pt; }
+h1					{ font-size: 32pt; 
+					  display: block;
+					  margin: 1.1em auto; }
 footer					{ padding: 1em; }
-#nav					{ padding: 1ex; }
+#nav					{ padding: 1ex 2%; }
+article					{ padding: 0 2%; }
 }

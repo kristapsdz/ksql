@@ -4,7 +4,8 @@
 		<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
 		<meta charset="utf-8" /> 
 		<title>ksql: yet another SQLite wrapper</title>
-		<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css" />
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css" />
+		<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Alegreya+Sans:300,400,italic300" />
 		<link rel="stylesheet" href="index.css" />
 	</head>
 	<body>
@@ -19,6 +20,7 @@
 					<ul>
 						<li><a href="ksql.3.html">ksql(3)</a></li>
 						<li><a href="ksql_alloc.3.html">ksql_alloc(3)</a></li>
+						<li><a href="ksql_alloc_child.3.html">ksql_alloc_child(3)</a></li>
 						<li><a href="ksql_bind_double.3.html">ksql_bind_double(3)</a></li>
 						<li><a href="ksql_close.3.html">ksql_close(3)</a></li>
 						<li><a href="ksql_exec.3.html">ksql_exec(3)</a></li>
@@ -53,9 +55,18 @@
 						statements open on exit and certain signals).
 						Specifically, it exits on any database errors; and upon exit (or signal), cleans up open statements, transactions, and databases.
 						See <a href="ksql.3.html">ksql(3)</a> and friends for details.
-						It runs on OpenBSD, Linux, and Mac OS X.
 					</p>
-					<nav data-sblg-nav="1" data-sblg-navsz="2" data-sblg-navcontent="1">
+					<p>
+						It also provides extra security when run in an optional split-process model.
+						This protects your database from being exposed to a compromised process.
+						It also allows your calling code to sandbox itself (e.g., by using
+						<a href="https://man.openbsd.org/pledge.2">pledge(2)</a>) without needing to accommodate for SQLite's file-system access requirements.
+					</p>
+					<p>
+						The library runs on OpenBSD, Linux, and Mac OS X.
+						It is a <a href="https://www.bsd.lv">BSD.lv</a> project.
+					</p>
+					<nav data-sblg-nav="1" data-sblg-navsz="4" data-sblg-navcontent="1">
 						<div>
 							Version <span class="version">${sblg-title}</span> 
 							(<time datetime="${sblg-date}">${sblg-date}</time>)
@@ -69,7 +80,7 @@
 		</article>
 		<footer>
 			<div>
-				&#169; 2016, <a href="http://kristaps.bsd.lv">Kristaps Dzonsons</a>
+				&#169; 2016&#8211;2017 <a href="https://kristaps.bsd.lv">Kristaps Dzonsons</a>
 			</div>
 			<div>
 				<a href="https://scan.coverity.com/projects/ksql">
