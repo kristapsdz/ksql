@@ -36,14 +36,19 @@ The
 function creates a SQLite database handle.
 It must be matched by a call to
 .Xr ksql_free 3
-(unless
+unless
 .Dv KSQL_SAFE_EXIT
-is specified, in which case it will be freed on exit) and is usually
+is specified, in which case it will be freed on exit.
+(It is still good practise to manually free.)
+It is usually
 followed by
 .Xr ksql_open 3 .
-This differs from
+.Pp
+The
+.Nm
+function differs from
 .Xr ksql_alloc 3
-in that the database is opened in a child process, instead of within the
+in that the database is opened in a child process instead of within the
 current process, with all database queries running over a communication
 socket.
 This way, the caller can safely sandbox after the function returns.
@@ -56,9 +61,14 @@ useful defaults are used.
 The
 .Fa onfork
 function, if specified, is invoked by the child after a successful
-.Xr fork 2 .
-It can be used to perform any clean-up of the inherited environment.
-.Pq The regular file descriptors are all closed.
+.Xr fork 2
+with the
+.Fa arg
+variable.
+.Em Note :
+the process environment within which
+.Fa onfork
+is invoked is prior to its being sandboxed.
 .Pp
 The defaults on
 .Fa cfg
