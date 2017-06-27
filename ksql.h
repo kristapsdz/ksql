@@ -86,7 +86,7 @@ enum ksqlc	 ksql_trans_open(struct ksql *, size_t);
 enum ksqlc	 ksql_trans_rollback(struct ksql *, size_t);
 
 void		 ksql_trace(struct ksql *);
-void		 ksql_untrace(void);
+void		 ksql_untrace(struct ksql *);
 
 void		 ksqlitedbmsg(void *, int, int, const char *, const char *);
 void		 ksqlitemsg(void *, enum ksqlc, const char *, const char *);

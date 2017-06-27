@@ -171,8 +171,10 @@ enum	ksqlop {
 	KSQLOP_STMT_FREE, /* ksql_stmt_free */
 	KSQLOP_STMT_RESET, /* ksql_stmt_reset */
 	KSQLOP_STMT_STEP, /* ksql_stmt_step */
+	KSQLOP_TRACE, /* ksql_trace */
 	KSQLOP_TRANS_CLOSE, /* ksql_trans_xxxx */
 	KSQLOP_TRANS_OPEN, /* ksql_trans_xxxx */
+	KSQLOP_UNTRACE, /* ksql_untrace */
 };
 
 static	const char *const ksqlops[] = {
@@ -196,8 +198,10 @@ static	const char *const ksqlops[] = {
 	"STMT_FREE", /* KSQLOP_STMT_FREE */
 	"STMT_RESET", /* KSQLOP_STMT_RESET */
 	"STMT_STEP", /* KSQLOP_STMT_STEP */
+	"TRACE", /* KSQLOP_TRACE */
 	"TRANS_CLOSE", /* KSQLOP_TRANS_CLOSE */
 	"TRANS_OPEN", /* KSQLOP_TRANS_OPEN */
+	"UNTRACE", /* KSQLOP_UNTRACE */
 };
 
 /*
@@ -307,20 +311,6 @@ ksql_dberr(struct ksql *p)
 	if (KSQL_EXIT_ON_ERR & p->cfg.flags)
 		exit(EXIT_FAILURE);
 	return(KSQL_DB);
-}
-
-void
-ksql_trace(struct ksql *p)
-{
-
-	sqlite3_config(SQLITE_CONFIG_LOG, ksql_tracemsg, p);
-}
-
-void
-ksql_untrace(void)
-{
-
-	sqlite3_config(SQLITE_CONFIG_LOG, NULL, NULL);
 }
 
 void
@@ -1235,11 +1225,17 @@ ksql_alloc_child(const struct ksqlcfg *cfg,
 		case (KSQLOP_STMT_STEP):
 			c = ksqlsrv_stmt_step(p);
 			break;
+		case (KSQLOP_TRACE):
+			ksql_trace(p);
+			break;
 		case (KSQLOP_TRANS_CLOSE):
 			c = ksqlsrv_trans_close(p);
 			break;
 		case (KSQLOP_TRANS_OPEN):
 			c = ksqlsrv_trans_open(p);
+			break;
+		case (KSQLOP_UNTRACE):
+			ksql_untrace(p);
 			break;
 		default:
 			abort();
@@ -2183,3 +2179,24 @@ ksql_stmt_str(struct ksqlstmt *stmt, size_t col)
 	c->s = cp;
 	return(c->s);
 }
+
+void
+ksql_trace(struct ksql *p)
+{
+
+	if (KSQLSRV_ISPARENT(p))
+		ksql_writeop(p, KSQLOP_TRACE);
+	else
+		sqlite3_config(SQLITE_CONFIG_LOG, ksql_tracemsg, p);
+}
+
+void
+ksql_untrace(struct ksql *p)
+{
+
+	if (KSQLSRV_ISPARENT(p))
+		ksql_writeop(p, KSQLOP_UNTRACE);
+	else
+		sqlite3_config(SQLITE_CONFIG_LOG, NULL, NULL);
+}
+
