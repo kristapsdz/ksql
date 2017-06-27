@@ -1,6 +1,6 @@
 .\"	$Id$
 .\"
-.\" Copyright (c) 2016 Kristaps Dzonsons <kristaps@bsd.lv>
+.\" Copyright (c) 2016--2017 Kristaps Dzonsons <kristaps@bsd.lv>
 .\"
 .\" Permission to use, copy, modify, and distribute this software for any
 .\" purpose with or without fee is hereby granted, provided that the above
@@ -23,6 +23,7 @@
 .Sh LIBRARY
 .Lb ksql
 .Sh SYNOPSIS
+.In stdint.h
 .In ksql.h
 .Vt enum ksqlc ;
 .Vt struct ksql ;
@@ -70,27 +71,41 @@ Invoke
 .Dq apropos ksql 
 to see all functions.
 .Ss Database safety
-By default,
-.Nm ksql
-will trigger calls to
-.Xr exit 2
+By default (see
+.Xr ksql_alloc 3
+and
+.Xr ksql_alloc_child 3 ) ,
+the library will invoke
+.Xr exit 3
 if any of the database functions fail.
+.Dq Failure
+means that any SQLite function (for example, stepping for result rows or
+binding parameters) that fails will trigger exit.
+.Pp
 It will also register an
 .Xr atexit 3
 hook that will clean up any open database connections, transactions, and
-open statements and make sure that
+open statements.
+.Pp
+Lastly, it will intercept the
 .Dv SIGABRT
 and
 .Dv SIGSEGV
-signals are intercepted and trigger a controlled exit.
-Thus, if your program fails while performing (say) transactions, or any
-sort of open database, you won't corrupt the data.
-.Ss Compiling
+and trigger a controlled exit.
+Thus, if your program is signalled while performing (say) transactions,
+or any sort of open database, you won't corrupt the data.
+.Pp
+All of these safety measures can be disabled by providing the
+appropriate flags to
+.Xr ksql_alloc 3
+or
+.Xr ksql_alloc_child 3 .
+.Ss Compiling and linking
 To compile with
 .Nm ksql ,
 use the header file
-.In ksql.h
-and link to
+.In ksql.h .
+For linking, use
 .Fl l Ns Ar ksql
 .Fl l Ns Ar sqlite3 .
 .Ss Access protocol
@@ -129,6 +144,35 @@ and
 .\" .Sh ERRORS
 .\" For sections 2, 3, 4, and 9 errno settings only.
 .Sh SEE ALSO
+.Xr ksql_alloc 3 ,
+.Xr ksql_alloc_child 3 ,
+.Xr ksql_bind_blob 3 ,
+.Xr ksql_bind_bytes 3 ,
+.Xr ksql_bind_double 3 ,
+.Xr ksql_bind_int 3 ,
+.Xr ksql_bind_str 3 ,
+.Xr ksql_bind_zblob 3 ,
+.Xr ksql_close 3 ,
+.Xr ksql_exec 3 ,
+.Xr ksql_free 3 ,
+.Xr ksql_lastid 3 ,
+.Xr ksql_open 3 ,
+.Xr ksql_stmt_alloc 3 ,
+.Xr ksql_stmt_blob 3 ,
+.Xr ksql_stmt_bytes 3 ,
+.Xr ksql_stmt_cstep 3 ,
+.Xr ksql_stmt_double 3 ,
+.Xr ksql_stmt_free 3 ,
+.Xr ksql_stmt_int 3 ,
+.Xr ksql_stmt_isnull 3 ,
+.Xr ksql_stmt_reset 3 ,
+.Xr ksql_stmt_step 3 ,
+.Xr ksql_stmt_str
+.Xr ksql_trans_commit 3 ,
+.Xr ksql_trans_exclopen 3 ,
+.Xr ksql_trans_functions 3 ,
+.Xr ksql_trans_open 3 ,
+.Xr ksql_trans_rollback 3 ,
 .Xr sqlite3 3
 .\" .Xr foobar 1
 .\" .Sh STANDARDS
