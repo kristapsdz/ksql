@@ -4,20 +4,25 @@
 		<header>
 			<h1>0.1.0</h1>
 			<address>Kristaps Dzonsons</address>
-			<time datetime="2016-04-19">2016-04-19</time>
+			<time datetime="2016-06-27">2016-06-27</time>
 		</header>
 		<aside>
+			<p>
+				Provide an initial <a href="ksql_alloc_child.3.html">ksql_alloc_child(3)</a>, which operates a split-process
+				model of database access.
+				This is still under development and should be considered experimental.
+			</p>
 			<p>
 				The <code>ksql_stmt_free</code> and <code>ksql_stmt_reset</code> functions now return a status code.
 				The former also accepts NULL (in the tradition of free functions).
 				Moreover, change the return value for <code>ksql_stmt_str</code> to be a <code>const</code> pointer.
 			</p>
 			<p>
-				Add the <code>ksql_trace</code> and <code>ksql_untrace</q> for tracing database operations directly.
+				Add the <code>ksql_trace</code> and <code>ksql_untrace</code> for tracing database operations directly.
 			</p>
 			<p>
 				Fix bad self-references in the <q>bind</q> manpages and also note memory usage for <code>ksql_bind_str</code>,
-				<code>ksql_bind_blob</q>, <code>ksql_stmt_str</code>, and <code>ksql_stmt_blob</code>.
+				<code>ksql_bind_blob</code>, <code>ksql_stmt_str</code>, and <code>ksql_stmt_blob</code>.
 			</p>
 		</aside>
 	</article>
