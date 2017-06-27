@@ -35,6 +35,7 @@ main(void)
 	size_t		 i;
 	struct ksqlstmt	*stmt;
 	char		 buf[64];
+	const char	*cp;
 	uint32_t	 val;
 	int64_t		 id;
 
@@ -50,6 +51,11 @@ main(void)
 	if (NULL == (sql = ksql_alloc_child(&cfg, NULL, NULL)))
 		errx(EXIT_FAILURE, "ksql_alloc_child");
 
+#if HAVE_PLEDGE
+	if (-1 == pledge("stdio", NULL))
+		err(EXIT_FAILURE, "pledge");
+#endif
+
 	if (KSQL_OK != ksql_open(sql, "test.db"))
 		errx(EXIT_FAILURE, "ksql_open");
 
@@ -60,7 +66,7 @@ main(void)
 	    "INSERT INTO test (foo,bar,baz,xyzzy) "
 	    "VALUES (?,?,?,?)", 1))
 		errx(EXIT_FAILURE, "ksql_stmt_alloc");
-	for (i = 0; i < 10000; i++) {
+	for (i = 0; i < 10; i++) {
 #if HAVE_ARC4RANDOM
 		val = arc4random();
 #else
@@ -114,10 +120,12 @@ main(void)
 	while (KSQL_ROW == ksql_stmt_step(stmt)) {
 		printf("Step (%zu:1): %" PRId64 "\n", i,
 			ksql_stmt_int(stmt, 0));
+		cp = ksql_stmt_str(stmt, 1);
 		printf("Step (%zu:2): %s\n", i,
-			ksql_stmt_str(stmt, 1));
+			NULL == cp ? "(null)" : cp);
+		cp = ksql_stmt_blob(stmt, 2);
 		printf("Step (%zu:3): [%s] (%zu)\n", i,
-			(const char *)ksql_stmt_blob(stmt, 2),
+			NULL == cp ? "(null)" : cp,
 			ksql_stmt_bytes(stmt, 2));
 		printf("Step (%zu:4): %f\n", i,
 			ksql_stmt_double(stmt, 3));
