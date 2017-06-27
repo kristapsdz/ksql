@@ -53,17 +53,14 @@ main(void)
 	if (KSQL_OK != ksql_open(sql, "test.db"))
 		errx(EXIT_FAILURE, "ksql_open");
 
+	if (KSQL_OK != ksql_trans_open(sql, 0))
+		errx(EXIT_FAILURE, "ksql_trans_open");
+
 	if (KSQL_OK != ksql_stmt_alloc(sql, &stmt, 
-	    "INSERT INTO numbers (foo,bar,baz) VALUES (?,?,?)", 1))
+	    "INSERT INTO test (foo,bar,baz,xyzzy) "
+	    "VALUES (?,?,?,?)", 1))
 		errx(EXIT_FAILURE, "ksql_stmt_alloc");
-	for (i = 0; i < 10; i++) {
-#if HAVE_ARC4RANDOM
-		val = arc4random();
-#else
-		val = random();
-#endif
-		if (KSQL_OK != ksql_bind_int(stmt, 0, val))
-			errx(EXIT_FAILURE, "ksql_bind_int");
+	for (i = 0; i < 10000; i++) {
 #if HAVE_ARC4RANDOM
 		val = arc4random();
 #else
@@ -71,20 +68,28 @@ main(void)
 #endif
 		snprintf(buf, sizeof(buf), "%" PRIu32, val);
 		if (0 == (val % 2)) {
+			if (KSQL_OK != ksql_bind_int(stmt, 0, val))
+				errx(EXIT_FAILURE, "ksql_bind_int");
 			if (KSQL_OK != ksql_bind_str(stmt, 1, buf))
 				errx(EXIT_FAILURE, "ksql_bind_str");
 			if (KSQL_OK != ksql_bind_blob
 			    (stmt, 2, buf, strlen(buf) + 1))
 				errx(EXIT_FAILURE, "ksql_bind_str");
-			printf("Bind (%zu:2): %zu bytes -> %s\n", i,
+			if (KSQL_OK != ksql_bind_double(stmt, 3, val * 0.5))
+				errx(EXIT_FAILURE, "ksql_bind_double");
+			printf("Bind (%zu): %zu bytes -> %s\n", i,
 				strlen(buf) + 1, buf);
 		} else {
+			if (KSQL_OK != ksql_bind_null(stmt, 0))
+				errx(EXIT_FAILURE, "ksql_bind_null");
 			if (KSQL_OK != ksql_bind_null(stmt, 1))
 				errx(EXIT_FAILURE, "ksql_bind_null");
 			if (KSQL_OK != ksql_bind_zblob
 		   	    (stmt, 2, strlen(buf) + 1))
 				errx(EXIT_FAILURE, "ksql_bind_str");
-			printf("Bind (%zu:2): (null) %zu bytes -> %s\n", i,
+			if (KSQL_OK != ksql_bind_null(stmt, 3))
+				errx(EXIT_FAILURE, "ksql_bind_null");
+			printf("Bind (%zu): (null) %zu bytes -> %s\n", i,
 				strlen(buf) + 1, buf);
 		}
 		if (KSQL_DONE != ksql_stmt_step(stmt))
@@ -98,8 +103,11 @@ main(void)
 	if (KSQL_OK != ksql_stmt_free(stmt))
 		errx(EXIT_FAILURE, "ksql_stmt_free");
 
+	if (KSQL_OK != ksql_trans_commit(sql, 0))
+		errx(EXIT_FAILURE, "ksql_trans_open");
+
 	if (KSQL_OK != ksql_stmt_alloc(sql, &stmt, 
-	    "SELECT foo,bar,baz,id FROM numbers", 0))
+	    "SELECT foo,bar,baz,xyzzy,id FROM test", 0))
 		errx(EXIT_FAILURE, "ksql_stmt_alloc");
 
 	i = 0;
@@ -111,8 +119,10 @@ main(void)
 		printf("Step (%zu:3): [%s] (%zu)\n", i,
 			(const char *)ksql_stmt_blob(stmt, 2),
 			ksql_stmt_bytes(stmt, 2));
-		printf("Step (%zu:4): %" PRId64 "\n", i,
-			ksql_stmt_int(stmt, 3));
+		printf("Step (%zu:4): %f\n", i,
+			ksql_stmt_double(stmt, 3));
+		printf("Step (%zu:5): %" PRId64 "\n", i,
+			ksql_stmt_int(stmt, 4));
 		i++;
 	}
 
