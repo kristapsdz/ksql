@@ -19,7 +19,7 @@
 .Os
 .Sh NAME
 .Nm ksql_stmt_reset
-.Nd resets (unbinds) a statement on a database connection
+.Nd resets a statement on a database connection
 .Sh LIBRARY
 .Lb ksql
 .Sh SYNOPSIS
@@ -33,16 +33,21 @@
 The
 .Nm
 function resets a statement allocated with
-.Xr ksql_stmt_alloc 3 ,
-effectively just
-.Xr sqlite3_reset .
+.Xr ksql_stmt_alloc 3 .
+.Em Note :
+as documented in
+.Xr sqlite3_reset 3 ,
+this does not unbind statements made with
+.Xr ksql_bind_double 3
+and friends.
 .\" .Sh CONTEXT
 .\" For section 9 functions only.
 .\" .Sh IMPLEMENTATION NOTES
 .\" Not used in OpenBSD.
 .Sh RETURN VALUES
-Always returns
-.Dv KSQL_OK .
+Returns
+.Dv KSQL_OK
+on success or another error on failure.
 .\" For sections 2, 3, and 9 function return values only.
 .\" .Sh ENVIRONMENT
 .\" For sections 1, 6, 7, and 8 only.
