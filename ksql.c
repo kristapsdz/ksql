@@ -1337,12 +1337,14 @@ ksql_close_inner(struct ksql *p, int onexit)
 	while ( ! TAILQ_EMPTY(&p->stmt_used)) {
 		stmt = TAILQ_FIRST(&p->stmt_used);
 		TAILQ_REMOVE(&p->stmt_used, stmt, entries);
-		sqlite3_finalize(stmt->stmt);
-		snprintf(buf, sizeof(buf),
-			"statement %zu still open", stmt->id);
-		stmt->stmt = NULL;
-		haserrs = KSQL_STMT;
-		ksql_err_noexit(p, KSQL_STMT, buf);
+		if (NULL != stmt->stmt) {
+			sqlite3_finalize(stmt->stmt);
+			snprintf(buf, sizeof(buf),
+				"statement %zu still open", stmt->id);
+			stmt->stmt = NULL;
+			haserrs = KSQL_STMT;
+			ksql_err_noexit(p, KSQL_STMT, buf);
+		}
 		TAILQ_INSERT_TAIL(&p->stmt_free, stmt, entries);
 	}
 
@@ -1595,13 +1597,11 @@ again:
 	return(ksql_dberr(stmt->sql));
 }
 
-/* 
- * FIXME: error code from sqlite3_reset()?
- */
 enum ksqlc
 ksql_stmt_reset(struct ksqlstmt *stmt)
 {
 	enum ksqlc	 c = KSQL_OK;
+	int		 rc;
 
 	/*
 	 * As defined in the SQLite manual, which we'll do as well, we
@@ -1615,8 +1615,11 @@ ksql_stmt_reset(struct ksqlstmt *stmt)
 		if (KSQL_OK != c)
 			return(c);
 		c = ksql_writeptr(stmt->sql, stmt->ptr);
-	} else
-		sqlite3_reset(stmt->stmt);
+	} else {
+		rc = sqlite3_reset(stmt->stmt);
+		if (SQLITE_OK != rc) 
+			c = ksql_dberr(stmt->sql);
+	}
 
 	return(c);
 }
@@ -1635,13 +1638,11 @@ ksql_stmt_cstep(struct ksqlstmt *stmt)
 	return(ksql_step_inner(stmt, 1));
 }
 
-/* 
- * FIXME: error code from sqlite3_finalize?
- */
 enum ksqlc
 ksql_stmt_free(struct ksqlstmt *stmt)
 {
 	enum ksqlc	 c = KSQL_OK;
+	int		 rc;
 
 	if (NULL == stmt)
 		return(KSQL_OK);
@@ -1662,9 +1663,16 @@ ksql_stmt_free(struct ksqlstmt *stmt)
 			c = ksql_writeptr(stmt->sql, stmt->ptr);
 		stmt->ptr = NULL;
 	} else {
+		/*
+		 * If this fails and we're catching errors, the
+		 * statement in stmt_used will be NULL.
+		 * This is handled in ksql_close_inner.
+		 */
 		assert(TAILQ_EMPTY(&stmt->cache));
-		sqlite3_finalize(stmt->stmt);
+		rc = sqlite3_finalize(stmt->stmt);
 		stmt->stmt = NULL;
+		if (SQLITE_OK != rc)
+			c = ksql_dberr(stmt->sql);
 	}
 
 	TAILQ_REMOVE(&stmt->sql->stmt_used, stmt, entries);
