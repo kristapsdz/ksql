@@ -2,6 +2,7 @@
 
 include Makefile.configure
 
+WWWDIR	 = /var/www/vhosts/kristaps.bsd.lv/htdocs/ksql
 VERSION	 = 0.1.0
 BUILT	 = index.css \
 	   mandoc.css
@@ -79,10 +80,10 @@ $(COMPAT) ksql.o test: config.h
 www: $(HTMLS) ksql.tar.gz
 
 installwww: www
-	mkdir -p $(PREFIX)/snapshots
-	$(INSTALL_DATA) $(HTMLS) $(BUILT) $(PREFIX)
-	$(INSTALL_DATA) ksql.tar.gz $(PREFIX)/snapshots
-	$(INSTALL_DATA) ksql.tar.gz $(PREFIX)/snapshots/ksql-$(VERSION).tar.gz
+	mkdir -p $(WWWDIR)/snapshots
+	$(INSTALL_DATA) $(HTMLS) $(BUILT) $(WWWDIR)
+	$(INSTALL_DATA) ksql.tar.gz $(WWWDIR)/snapshots
+	$(INSTALL_DATA) ksql.tar.gz $(WWWDIR)/snapshots/ksql-$(VERSION).tar.gz
 
 ksql.tar.gz:
 	mkdir -p .dist/ksql-$(VERSION)
