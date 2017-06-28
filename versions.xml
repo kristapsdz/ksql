@@ -2,6 +2,22 @@
 <articles>
 	<article data-sblg-article="1" data-sblg-tags="version">
 		<header>
+			<h1>0.1.1</h1>
+			<address>Kristaps Dzonsons</address>
+			<time datetime="2016-06-28">2016-06-28</time>
+		</header>
+		<aside>
+			<p>
+				Process return code of <code>sqlite3_reset</code> and <code>sqlite3_finalize</code>.
+				Also make sure that the parent process in the split-process model properly registers its exit hook to clean up
+				memory.
+				Lastly, have the exported error functions use <code>err.h</code> instead of printing directly to
+				<code>stderr</code>.
+			</p>
+		</aside>
+	</article>
+	<article data-sblg-article="1" data-sblg-tags="version">
+		<header>
 			<h1>0.1.0</h1>
 			<address>Kristaps Dzonsons</address>
 			<time datetime="2016-06-27">2016-06-27</time>
