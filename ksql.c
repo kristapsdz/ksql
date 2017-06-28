@@ -1115,15 +1115,14 @@ ksql_alloc_child(const struct ksqlcfg *cfg,
 		 * ksqld for communicating with the child.
 		 */
 		close(fd[1]);
-		if (NULL == (p = calloc(1, sizeof(struct ksql))) ||
+		if (NULL == (p = ksql_alloc(cfg)) ||
 		    NULL == (d = calloc(1, sizeof(struct ksqld)))) {
 			close(fd[0]);
 			free(p);
+			/* FIXME: waitpid on child? */
 			return(NULL);
 		}
 		p->daemon = d;
-		TAILQ_INIT(&p->stmt_used);
-		TAILQ_INIT(&p->stmt_free);
 		d->fd = fd[0];
 		d->pid = pid;
 		return(p);
@@ -1295,7 +1294,7 @@ ksql_alloc(const struct ksqlcfg *cfg)
 		ksql_jmp_end();
 	}
 
-#ifdef ARC4RANDOM
+#if HAVE_ARC4RANDOM
 	srandom(arc4random());
 #else
 	srandom(getpid());
@@ -1339,12 +1338,12 @@ ksql_close_inner(struct ksql *p, int onexit)
 		TAILQ_REMOVE(&p->stmt_used, stmt, entries);
 		if (NULL != stmt->stmt) {
 			sqlite3_finalize(stmt->stmt);
-			snprintf(buf, sizeof(buf),
-				"statement %zu still open", stmt->id);
 			stmt->stmt = NULL;
-			haserrs = KSQL_STMT;
-			ksql_err_noexit(p, KSQL_STMT, buf);
 		}
+		snprintf(buf, sizeof(buf),
+			"statement %zu still open", stmt->id);
+		haserrs = KSQL_STMT;
+		ksql_err_noexit(p, KSQL_STMT, buf);
 		TAILQ_INSERT_TAIL(&p->stmt_free, stmt, entries);
 	}
 
@@ -1420,6 +1419,7 @@ ksql_free_inner(struct ksql *p, int onexit)
 	if (KSQLSRV_ISPARENT(p)) {
 		close(p->daemon->fd);
 		waitpid(p->daemon->pid, NULL, 0);
+		er = ksql_close_inner(p, onexit);
 	} else if (KSQLSRV_ISCHILD(p)) {
 		er = ksql_close_inner(p, onexit);
 		close(p->daemon->fd);
