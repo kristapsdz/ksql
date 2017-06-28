@@ -35,17 +35,21 @@ The
 function creates a SQLite database handle.
 This must be matched by a call to
 .Xr ksql_free 3
-(unless
+unless
 .Dv KSQL_SAFE_EXIT
-is specified, in which case it will be freed on exit) and is usually
-followed by
+is specified, in which case it will be freed on exit.
+(It is still good practise to manually free.)
+It is usually followed by
 .Xr ksql_open 3 .
+The database is opened within the calling process.
+For a split-process model, see
+.Xr ksql_alloc_child 3 .
+.Pp
 If
 .Fa cfg
 is
 .Dv NULL ,
 useful defaults are used.
-.Pp
 The defaults on
 .Fa cfg
 are that the
@@ -169,8 +173,9 @@ if memory allocations failed.
 .\" For sections 1, 4, 6, 7, 8, and 9 printf/stderr messages only.
 .\" .Sh ERRORS
 .\" For sections 2, 3, 4, and 9 errno settings only.
-.\" .Sh SEE ALSO
-.\" .Xr foobar 1
+.Sh SEE ALSO
+.Xr ksql_alloc_child 3 ,
+.Xr ksql_free 3
 .\" .Sh STANDARDS
 .\" .Sh HISTORY
 .\" .Sh AUTHORS

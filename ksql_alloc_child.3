@@ -41,8 +41,7 @@ unless
 .Dv KSQL_SAFE_EXIT
 is specified, in which case it will be freed on exit.
 (It is still good practise to manually free.)
-It is usually
-followed by
+It is usually followed by
 .Xr ksql_open 3 .
 .Pp
 The
@@ -108,8 +107,9 @@ if memory allocations failed.
 .\" For sections 1, 4, 6, 7, 8, and 9 printf/stderr messages only.
 .\" .Sh ERRORS
 .\" For sections 2, 3, 4, and 9 errno settings only.
-.\" .Sh SEE ALSO
-.\" .Xr foobar 1
+.Sh SEE ALSO
+.Xr ksql_alloc 3 ,
+.Xr ksql_free 3
 .\" .Sh STANDARDS
 .\" .Sh HISTORY
 .\" .Sh AUTHORS
