@@ -22,6 +22,9 @@
 #include <sys/wait.h>
 
 #include <assert.h>
+#if HAVE_ERR
+# include <err.h>
+#endif
 #include <errno.h>
 #if ! HAVE_SOCK_NONBLOCK
 # include <fcntl.h>
@@ -319,21 +322,24 @@ ksqlitedbmsg(void *arg, int sql3,
 {
 
 	(void)arg;
-	fprintf(stderr, "%s: %s: %s (error code %d, extended %d)\n",
-		getprogname(), file, msg, sql3, esql3);
+	if (NULL != file)
+		warnx("%s: %s (error code %d, extended %d)", 
+			file, msg, sql3, esql3);
+	else
+		warnx("%s (error code %d, extended %d)", 
+			msg, sql3, esql3);
 }
 
 void
-ksqlitemsg(void *arg, enum ksqlc code, const char *file, const char *msg)
+ksqlitemsg(void *arg, enum ksqlc code, 
+	const char *file, const char *msg)
 {
 
 	(void)arg;
 	if (NULL != file)
-		fprintf(stderr, "%s: %s: %s (error code %d)\n", 
-			getprogname(), file, msg, code);
+		warnx("%s: %s (error code %d)", file, msg, code);
 	else
-		fprintf(stderr, "%s: %s (error code %d)\n", 
-			getprogname(), msg, code);
+		warnx("%s (error code %d)", msg, code);
 }
 
 /*
