@@ -2,6 +2,21 @@
 <articles>
 	<article data-sblg-article="1" data-sblg-tags="version">
 		<header>
+			<h1>0.1.2</h1>
+			<address>Kristaps Dzonsons</address>
+			<time datetime="2016-06-29">2016-06-29</time>
+		</header>
+		<aside>
+			<p>
+				Roll back processing of SQLite's error codes in
+				<a href="ksql_stmt_reset.3.html">ksql_stmt_reset(3)</a> and
+				<a href="ksql_stmt_free.3.html">ksql_stmt_free(3)</a>.
+				The returned error codes in SQLite don't refer to the success of the operation itself.
+			</p>
+		</aside>
+	</article>
+	<article data-sblg-article="1" data-sblg-tags="version">
+		<header>
 			<h1>0.1.1</h1>
 			<address>Kristaps Dzonsons</address>
 			<time datetime="2016-06-29">2016-06-29</time>
