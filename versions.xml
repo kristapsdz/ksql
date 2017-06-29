@@ -4,7 +4,7 @@
 		<header>
 			<h1>0.1.1</h1>
 			<address>Kristaps Dzonsons</address>
-			<time datetime="2016-06-28">2016-06-28</time>
+			<time datetime="2016-06-29">2016-06-29</time>
 		</header>
 		<aside>
 			<p>
@@ -13,6 +13,9 @@
 				memory.
 				Lastly, have the exported error functions use <code>err.h</code> instead of printing directly to
 				<code>stderr</code>.
+			</p>
+			<p>
+				While here, add a port for <a href="https://github.com/kristapsdz/homebrew-repo">homebrew</a>.
 			</p>
 		</aside>
 	</article>
