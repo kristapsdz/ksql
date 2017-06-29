@@ -35,7 +35,7 @@ The
 function frees a statement allocated with
 .Xr ksql_stmt_alloc 3 ,
 invoking
-.Xr sqlite3_finalize
+.Xr sqlite3_finalize 3
 on the underlying statement.
 This does nothing if
 .Fa stmt
@@ -46,8 +46,14 @@ is
 .\" .Sh IMPLEMENTATION NOTES
 .\" Not used in OpenBSD.
 .Sh RETURN VALUES
-Always returns
-.Dv KSQL_OK .
+Returns
+.Dv KSQL_OK
+on success or another error on failure.
+.Em Note :
+this does not return the code of
+.Xr sqlite3_finalize 3 ,
+which itself returns the code of the last step and not the failure of
+the resource de-allocation.
 .\" For sections 2, 3, and 9 function return values only.
 .\" .Sh ENVIRONMENT
 .\" For sections 1, 6, 7, and 8 only.
