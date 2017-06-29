@@ -1607,7 +1607,6 @@ enum ksqlc
 ksql_stmt_reset(struct ksqlstmt *stmt)
 {
 	enum ksqlc	 c = KSQL_OK;
-	int		 rc;
 
 	/*
 	 * As defined in the SQLite manual, which we'll do as well, we
@@ -1621,11 +1620,15 @@ ksql_stmt_reset(struct ksqlstmt *stmt)
 		if (KSQL_OK != c)
 			return(c);
 		c = ksql_writeptr(stmt->sql, stmt->ptr);
-	} else {
-		rc = sqlite3_reset(stmt->stmt);
-		if (SQLITE_OK != rc) 
-			c = ksql_dberr(stmt->sql);
-	}
+	} else
+		sqlite3_reset(stmt->stmt);
+
+	/*
+	 * XXX: DO NOT RETURN THE CODE OF SQLITE3_RESET.
+	 * It will just return the last sqlite3_step, which may have
+	 * been a constraint failure, which means this erroneously
+	 * returns an error.
+	 */
 
 	return(c);
 }
@@ -1648,7 +1651,6 @@ enum ksqlc
 ksql_stmt_free(struct ksqlstmt *stmt)
 {
 	enum ksqlc	 c = KSQL_OK;
-	int		 rc;
 
 	if (NULL == stmt)
 		return(KSQL_OK);
@@ -1670,15 +1672,14 @@ ksql_stmt_free(struct ksqlstmt *stmt)
 		stmt->ptr = NULL;
 	} else {
 		/*
-		 * If this fails and we're catching errors, the
-		 * statement in stmt_used will be NULL.
-		 * This is handled in ksql_close_inner.
+		 * XXX: DO NOT RETURN THE CODE OF SQLITE3_FINALIZE.
+		 * It will just return the last sqlite3_step, which may
+		 * have been a constraint failure, which means this
+		 * erroneously returns an error.
 		 */
 		assert(TAILQ_EMPTY(&stmt->cache));
-		rc = sqlite3_finalize(stmt->stmt);
+		sqlite3_finalize(stmt->stmt);
 		stmt->stmt = NULL;
-		if (SQLITE_OK != rc)
-			c = ksql_dberr(stmt->sql);
 	}
 
 	TAILQ_REMOVE(&stmt->sql->stmt_used, stmt, entries);
