@@ -3,7 +3,7 @@
 include Makefile.configure
 
 WWWDIR	 = /var/www/vhosts/kristaps.bsd.lv/htdocs/ksql
-VERSION	 = 0.1.1
+VERSION	 = 0.1.2
 BUILT	 = index.css \
 	   mandoc.css
 HTMLS	 = index.html \
