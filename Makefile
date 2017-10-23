@@ -42,40 +42,30 @@ MANS	 = ksql.3 \
 	   ksql_trans_open.3 \
 	   ksql_untrace.3
 SRCS	 = $(MANS) \
+	   compats.c \
 	   ksql.c \
 	   ksql.h \
-	   compat_err.c \
-	   compat_progname.c \
-	   compat_reallocarray.c \
-	   test-INFTIM.c \
-	   test-SOCK_NONBLOCK.c \
-	   test-arc4random.c \
-	   test-capsicum.c \
-	   test-err.c \
-	   test-pledge.c \
-	   test-progname.c \
-	   test-reallocarray.c \
-	   test-sandbox_init.c \
+	   tests.c \
 	   test.c \
 	   test.sql \
 	   Makefile
-COMPAT	 = compat_err.o \
-	   compat_progname.o \
-	   compat_reallocarray.o
+
+CFLAGS   += -I/usr/local/include
+LDFLAGS	 += -L/usr/local/lib
 
 all: test libksql.a test.db
 
-test: test.c $(COMPAT) libksql.a
-	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ test.c $(COMPAT) libksql.a -lsqlite3 
+test: test.c compats.o libksql.a
+	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ test.c compats.o libksql.a -lsqlite3 $(LDFLAGS)
 
 test.db: test.sql
 	rm -f $@
 	sqlite3 $@ < test.sql 
 
-libksql.a: ksql.o $(COMPAT)
-	$(AR) rs $@ ksql.o $(COMPAT)
+libksql.a: ksql.o compats.o
+	$(AR) rs $@ ksql.o compats.o
 
-$(COMPAT) ksql.o test: config.h
+compats.o ksql.o test: config.h
 
 www: $(HTMLS) ksql.tar.gz
 
@@ -103,7 +93,7 @@ install: libksql.a
 	$(INSTALL_DATA) $(MANS) $(MANDIR)/man3
 
 clean:
-	rm -f libksql.a $(COMPAT) ksql.o $(HTMLS) ksql.tar.gz test
+	rm -f libksql.a compats.o ksql.o $(HTMLS) ksql.tar.gz test
 
 distclean: clean
 	rm -f Makefile.configure config.h config.log
