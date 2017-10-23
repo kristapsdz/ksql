@@ -1,15 +1,24 @@
 html, body				{ height: 100%;
 					  margin: 0; }
 body 					{ font-family: 'Alegreya sans', sans-serif;
-					  font-weight: 300;
-					  color: #ddd;
-					  background-color: #1F2321; }
+					  font-weight: 400;
+					  font-size: 13pt;
+					  color: #444;
+					  background-color: #e4e4e4; }
+code, pre				{ font-size: smaller; }
 #nav					{ background-color: #1A1A1A; 
 					  padding: 1em 20%;
 					  color: #dd9400; }
+#breadcrumbs				{ margin: 2em 0; 
+					  font-size: 14pt;
+				 	  color: rgba(255, 255, 255, 0.5); }
 #nav label				{ cursor: pointer; }
 #nav label:hover,
+#nav a					{ color: orange; 
+					  text-decoration: none; }
 #nav a:hover				{ color: #ffa500; }
+#breadcrumbs a				{ color: rgba(255, 153, 0, 0.5); }
+#breadcrumbs a:hover			{ color: rgba(255, 153, 0, 0.9); }
 #nav input				{ display: none; }
 #nav ul					{ list-style-type: none; }
 #nav .menu ul				{ max-height: 0;
@@ -37,33 +46,35 @@ body 					{ font-family: 'Alegreya sans', sans-serif;
 #nav .menu li > ul li:last-child	{ margin-bottom: 8pt; }
 nav[data-sblg-nav] ul			{ list-style-type: none; 
 					  border-top: thin solid #dd9400;
-					  color: #aaa;
+					  color: #555;
 					  padding: 0; 
-					  padding-top: 12pt; }
-nav[data-sblg-nav] li > div:first-child	{ color: #fff; }
+					  margin-top: 2em;
+					  padding-top: 2em; }
+nav[data-sblg-nav] li > div:first-child	{ color: #000; }
 nav[data-sblg-nav] div > p:first-child	{ margin-top: 0.5em; }
-h1					{ margin: 0; 
-				 	  margin-top: 1em;
+h1					{ margin: 0.5em auto; 
 					  font-weight: normal;
 					  font-size: 60pt; }
 header > *				{ display: inline-block; }
-header					{ color: #aaa; 
+header					{ color: #222; 
 					  font-size: x-large; }
 article					{ padding: 0 20%; }
 article > section			{ }
 article > section > div			{ }
-a					{ color: orange; }
-#nav a					{ color: inherit; 
-					  text-decoration: none; }
+a					{ color: #DD6C00; }
 footer					{ padding: 2em;
-				 	  opacity: 0.8;
+					  font-size: 12pt;
+					  color: rgba(0, 0, 0, 0.4);
 					  text-align: center; }
-footer img				{ margin-top: 5px; }
+footer a				{ color: rgba(0, 0, 0, 0.7); }
+footer a:hover				{ color: rgba(0, 0, 0, 1.0); }
 
 @media only screen and (max-width: 760px), only screen and (max-device-width: 760px) {
 h1					{ font-size: 32pt; 
 					  display: block;
-					  margin: 1.1em auto; }
+					  margin: 0.2em auto; }
+header					{ margin-bottom: 1.5em; 
+					  margin-top: 1.5em; }
 footer					{ padding: 1em; }
 #nav					{ padding: 1ex 2%; }
 article					{ padding: 0 2%; }

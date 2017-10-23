@@ -5,11 +5,17 @@
 		<meta charset="utf-8" /> 
 		<title>ksql: yet another SQLite wrapper</title>
 		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css" />
-		<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Alegreya+Sans:300,400,italic300" />
+		<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Alegreya+Sans:400,italic400,500,700" />
 		<link rel="stylesheet" href="index.css" />
 	</head>
 	<body>
 		<nav id="nav">
+			<section id="breadcrumbs">
+				BSD.lv tools for BCHS: 
+				<a href="https://kristaps.bsd.lv/kcgi">kcgi</a>, 
+				<a href="https://kristaps.bsd.lv/ksql">ksql</a>, 
+				<a href="https://kristaps.bsd.lv/kwebapp">kwebapp</a>
+			</section>
 			<ul class="menu">
 				<li>
 					<a href="snapshots"><i class="fa fa-download fa-fw"></i> download</a>
@@ -57,7 +63,7 @@
 						See <a href="ksql.3.html">ksql(3)</a> and friends for details.
 					</p>
 					<p>
-						It also provides extra security when run in an optional split-process model.
+						It also provides extra security when run in an optional <a href="https://learnbchs.org/ksql.html">split-process</a> model.
 						This protects your database from being exposed to a compromised process.
 						It also allows your calling code to sandbox itself (e.g., by using
 						<a href="https://man.openbsd.org/pledge.2">pledge(2)</a>) without needing to accommodate for SQLite's file-system access requirements.
@@ -81,11 +87,6 @@
 		<footer>
 			<div>
 				&#169; 2016&#8211;2017 <a href="https://kristaps.bsd.lv">Kristaps Dzonsons</a>
-			</div>
-			<div>
-				<a href="https://scan.coverity.com/projects/ksql">
-					<img alt="Coverity Scan Build Status" src="https://scan.coverity.com/projects/8471/badge.svg"/>
-				</a>
 			</div>
 		</footer>
 	</body>
