@@ -8,7 +8,7 @@
 		<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Alegreya+Sans:400,italic400,500,700" />
 		<link rel="stylesheet" href="index.css" />
 	</head>
-	<body>
+	<body itemscope="itemscope" itemtype="http://schema.org/SoftwareApplication">
 		<nav id="nav">
 			<section id="breadcrumbs">
 				BSD.lv tools for BCHS: 
@@ -18,7 +18,7 @@
 			</section>
 			<ul class="menu">
 				<li>
-					<a href="snapshots"><i class="fa fa-download fa-fw"></i> download</a>
+					<a href="snapshots" itemprop="downloadURL"><i class="fa fa-download fa-fw"></i> download</a>
 				</li>
 				<li>
 					<label for="drop-2"><i class="fa fa-file fa-fw"></i> docs</label>
@@ -51,8 +51,8 @@
 			<section>
 				<div>
 					<header>
-						<h1>ksql</h1>
-						<div>yet another <a href="https://www.sqlite.org">SQLite</a> wrapper</div>
+						<h1 itemprop="name">ksql</h1>
+						<div itemprop="description">yet another <a href="https://www.sqlite.org">SQLite</a> wrapper</div>
 					</header>
 					<p>
 						<span class="nm">ksql</span> is a <q>lazy man's</q> wrapper for the SQLite <a
@@ -69,7 +69,10 @@
 						<a href="https://man.openbsd.org/pledge.2">pledge(2)</a>) without needing to accommodate for SQLite's file-system access requirements.
 					</p>
 					<p>
-						The library runs on OpenBSD, Linux, and Mac OS X.
+						The library runs on <span itemprop="operatingSystem">UNIX</span> systems: <span
+							itemprop="operatingSystem">OpenBSD</span>, <span
+							itemprop="operatingSystem">Linux</span>, and <span itemprop="operatingSystem">Mac OS
+							X</span>.  
 						It is a <a href="https://www.bsd.lv">BSD.lv</a> project.
 					</p>
 					<nav data-sblg-nav="1" data-sblg-navsz="4" data-sblg-navcontent="1">
@@ -86,7 +89,7 @@
 		</article>
 		<footer>
 			<div>
-				&#169; 2016&#8211;2017 <a href="https://kristaps.bsd.lv">Kristaps Dzonsons</a>
+				&#169; 2016&#8211;2017 <a rel="author" href="https://github.com/kristapsdz">Kristaps Dzonsons</a>
 			</div>
 		</footer>
 	</body>
