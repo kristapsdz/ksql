@@ -1,6 +1,6 @@
 .\"	$Id$
 .\"
-.\" Copyright (c) 2016 Kristaps Dzonsons <kristaps@bsd.lv>
+.\" Copyright (c) 2016--2017 Kristaps Dzonsons <kristaps@bsd.lv>
 .\"
 .\" Permission to use, copy, modify, and distribute this software for any
 .\" purpose with or without fee is hereby granted, provided that the above
@@ -19,7 +19,8 @@
 .Os
 .Sh NAME
 .Nm ksql_trans_exclopen ,
-.Nm ksql_trans_open
+.Nm ksql_trans_open ,
+.Nm ksql_trans_singleopen
 .Nd open a database transaction
 .Sh LIBRARY
 .Lb ksql
@@ -36,23 +37,52 @@
 .Fa "struct ksql *sql"
 .Fa "size_t id"
 .Fc
+.Ft enum ksqlc
+.Fo ksql_trans_singleopen
+.Fa "struct ksql *sql"
+.Fa "size_t id"
+.Fc
 .Sh DESCRIPTION
 The
-.Nm ksql_trans_exclopen
+.Fn ksql_trans_exclopen ,
+.Fn ksql_trans_open ,
 and
-.Nm ksql_trans_open
-functions open an exclusive
-.Pq Dq immediate
-or regular transaction, respectively.
+.Fn ksql_trans_singleopen
+functions open transactions with different lock states.
+All functions accept
+.Fa sql ,
+the database connection; and
+.Fa id ,
+an identifier used in error reporting and in making sure that
+transaction calls are symmetric.
+Each of these functions must be followed by
+.Xr ksql_trans_commit 3
+or
+.Xr ksql_trans_rollback 3 .
+.Pp
+If
+.Fn ksql_trans_open
+is used
+.Pq a Do DEFERRED Dc transaction, in SQLite terms ,
+the database is locked only when the first database operation
+is invoked.
+The lock is read-shared (multiple readers, no writers) for a read
+operation and is upgraded to write-single (multiple readers, single
+writer) on a write.
+.Pp
+If
+.Fn ksql_trans_singleopen
+is used
+.Pq Dq IMMEDIATE ,
+the database is immediately locked in write-single mode.
+.Pp
+If
+.Fn ksql_trans_exclopen
+.Pq Dq EXCLUSIVE ,
+the database is opened in a write-exclusive lock, where only the calling
+process may write or read from the database.
+.Pp
 Recursive transactions are disallowed.
-The
-.Fa id
-value is used in error reporting and in making sure that transaction
-calls are symmetric.
-This follows the same underlying execution logic of
-.Xr ksql_exec 3 .
-They must be followed by
-.Xr ksql_trans_commit 3 .
 .\" .Sh CONTEXT
 .\" For section 9 functions only.
 .\" .Sh IMPLEMENTATION NOTES
