@@ -213,7 +213,7 @@ static	const char *const ksqlops[] = {
 static enum ksqlc ksql_free_inner(struct ksql *, int);
 static enum ksqlc ksql_step_inner(struct ksqlstmt *, size_t);
 static enum ksqlc ksql_trans_open_inner(struct ksql *, size_t, size_t);
-static enum ksqlc ksql_trans_close_inner(struct ksql *, int, size_t);
+static enum ksqlc ksql_trans_close_inner(struct ksql *, size_t, size_t);
 
 /*
  * This is called within an atexit(3) handler for connections specified
@@ -1873,7 +1873,7 @@ ksql_bind_int(struct ksqlstmt *stmt, size_t pos, int64_t val)
 }
 
 static enum ksqlc
-ksql_trans_close_inner(struct ksql *p, int rollback, size_t id)
+ksql_trans_close_inner(struct ksql *p, size_t mode, size_t id)
 {
 	enum ksqlc	 c, cc;
 	char	 	 buf[1024];
@@ -1882,7 +1882,7 @@ ksql_trans_close_inner(struct ksql *p, int rollback, size_t id)
 		c = ksql_writeop(p, KSQLOP_TRANS_CLOSE);
 		if (KSQL_OK != c)
 			return(c);
-		if (KSQL_OK != (c = ksql_writesz(p, rollback))) 
+		if (KSQL_OK != (c = ksql_writesz(p, mode))) 
 			return(c);
 		if (KSQL_OK != (c = ksql_writesz(p, id)))
 			return(c);
@@ -1905,11 +1905,12 @@ ksql_trans_close_inner(struct ksql *p, int rollback, size_t id)
 		return(ksql_err(p, KSQL_TRANS, buf));
 	}
 
-	c = rollback ?
+	c = mode ?
 		ksql_exec(p, "ROLLBACK TRANSACTION", SIZE_MAX) :
 		ksql_exec(p, "COMMIT TRANSACTION", SIZE_MAX);
 
 	/* Set this only if the exec succeeded.*/
+
 	if (KSQL_OK == c)
 		p->flags &= ~KSQLFL_TRANS;
 
