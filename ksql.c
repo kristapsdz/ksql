@@ -212,7 +212,7 @@ static	const char *const ksqlops[] = {
  */
 static enum ksqlc ksql_free_inner(struct ksql *, int);
 static enum ksqlc ksql_step_inner(struct ksqlstmt *, size_t);
-static enum ksqlc ksql_trans_open_inner(struct ksql *, int, size_t);
+static enum ksqlc ksql_trans_open_inner(struct ksql *, size_t, size_t);
 static enum ksqlc ksql_trans_close_inner(struct ksql *, int, size_t);
 
 /*
@@ -1917,7 +1917,7 @@ ksql_trans_close_inner(struct ksql *p, int rollback, size_t id)
 }
 
 static enum ksqlc
-ksql_trans_open_inner(struct ksql *p, int immediate, size_t id)
+ksql_trans_open_inner(struct ksql *p, size_t mode, size_t id)
 {
 	enum ksqlc	 c, cc;
 	char		 buf[1024];
@@ -1926,7 +1926,7 @@ ksql_trans_open_inner(struct ksql *p, int immediate, size_t id)
 		c = ksql_writeop(p, KSQLOP_TRANS_OPEN);
 		if (KSQL_OK != c)
 			return(c);
-		if (KSQL_OK != (c = ksql_writesz(p, immediate))) 
+		if (KSQL_OK != (c = ksql_writesz(p, mode))) 
 			return(c);
 		if (KSQL_OK != (c = ksql_writesz(p, id)))
 			return(c);
@@ -1944,11 +1944,17 @@ ksql_trans_open_inner(struct ksql *p, int immediate, size_t id)
 		return(ksql_err(p, KSQL_TRANS, buf));
 	}
 
-	c = immediate ? 
-		ksql_exec(p, "BEGIN IMMEDIATE", SIZE_MAX) : 
-		ksql_exec(p, "BEGIN TRANSACTION", SIZE_MAX);
+	assert(mode <= 2);
+
+	if (2 == mode)
+		c = ksql_exec(p, "BEGIN EXCLUSIVE", SIZE_MAX);
+	else if (1 == mode)
+		c = ksql_exec(p, "BEGIN IMMEDIATE", SIZE_MAX);
+	else
+		c = ksql_exec(p, "BEGIN DEFERRED", SIZE_MAX);
 
 	/* Set this only if the exec succeeded.*/
+
 	if (KSQL_OK == c) {
 		p->flags |= KSQLFL_TRANS;
 		p->trans = id;
@@ -1965,6 +1971,13 @@ ksql_trans_open(struct ksql *p, size_t id)
 
 enum ksqlc
 ksql_trans_exclopen(struct ksql *p, size_t id)
+{
+
+	return(ksql_trans_open_inner(p, 2, id));
+}
+
+enum ksqlc
+ksql_trans_singleopen(struct ksql *p, size_t id)
 {
 
 	return(ksql_trans_open_inner(p, 1, id));
