@@ -2,15 +2,14 @@ html, body				{ height: 100%;
 					  margin: 0; }
 body 					{ font-family: 'Alegreya sans', sans-serif;
 					  font-weight: 400;
-					  font-size: 13pt;
+					  font-size: 14pt;
 					  color: #444;
-					  background-color: #e4e4e4; }
+					  background-color: #f4f4f4; }
 code, pre				{ font-size: smaller; }
 #nav					{ background-color: #1A1A1A; 
 					  padding: 1em 20%;
 					  color: #dd9400; }
 #breadcrumbs				{ margin: 2em 0; 
-					  font-size: 14pt;
 				 	  color: rgba(255, 255, 255, 0.5); }
 #nav label				{ cursor: pointer; }
 #nav label:hover,
@@ -50,6 +49,7 @@ nav[data-sblg-nav] ul			{ list-style-type: none;
 					  padding: 0; 
 					  margin-top: 2em;
 					  padding-top: 2em; }
+nav[data-sblg-nav] li + li		{ margin-top: 1.5em; }
 nav[data-sblg-nav] li > div:first-child	{ color: #000; }
 nav[data-sblg-nav] div > p:first-child	{ margin-top: 0.5em; }
 h1					{ margin: 0.5em auto; 
