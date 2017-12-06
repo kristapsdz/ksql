@@ -85,12 +85,12 @@ ksql.tar.gz:
 ksql.o: ksql.h
 
 install: libksql.a
-	mkdir -p $(LIBDIR)
-	mkdir -p $(INCLUDEDIR)
-	mkdir -p $(MANDIR)/man3
-	$(INSTALL_LIB) libksql.a $(LIBDIR)
-	$(INSTALL_DATA) ksql.h $(INCLUDEDIR)
-	$(INSTALL_DATA) $(MANS) $(MANDIR)/man3
+	mkdir -p $(DESTDIR)$(LIBDIR)
+	mkdir -p $(DESTDIR)$(INCLUDEDIR)
+	mkdir -p $(DESTDIR)$(MANDIR)/man3
+	$(INSTALL_LIB) libksql.a $(DESTDIR)$(LIBDIR)
+	$(INSTALL_DATA) ksql.h $(DESTDIR)$(INCLUDEDIR)
+	$(INSTALL_DATA) $(MANS) $(DESTDIR)$(MANDIR)/man3
 
 clean:
 	rm -f libksql.a compats.o ksql.o $(HTMLS) ksql.tar.gz test
@@ -104,4 +104,4 @@ distclean: clean
 index.html: versions.xml
 
 .xml.html:
-	sblg -t $< -o $@ versions.xml
+	sblg -s date -t $< -o $@ versions.xml
