@@ -2,6 +2,26 @@
 <articles>
 	<article data-sblg-article="1" data-sblg-tags="version">
 		<header>
+			<h1>0.1.4</h1>
+			<address>Kristaps Dzonsons</address>
+			<time datetime="2017-12-06">2017-12-06</time>
+		</header>
+		<aside>
+			<p>
+				<strong>Change in semantics</strong>: previously, the <a
+					href="ksql_trans_open.3.html">ksql_trans_exclopen(3)</a> would open the transaction in
+				<code>IMMEDIATE</code> mode, which was confusing.
+				Now, this function will invoke the <code>EXCLUSIVE</code> mode.
+				A new function, <a href="ksql_trans_open.3.html">ksql_trans_singleopen(3)</a>, opens in <code>IMMEDIATE</code>
+				mode.
+				See SQLite's <a href="https://sqlite.org/lang_transaction.html">transaction</a> documentation for details.
+				The manual has been updated for clearer language.
+				Also updated <a href="https://github.com/kristapsdz/oconfigure">oconfigure</a>.
+			</p>
+		</aside>
+	</article>
+	<article data-sblg-article="1" data-sblg-tags="version">
+		<header>
 			<h1>0.1.3</h1>
 			<address>Kristaps Dzonsons</address>
 			<time datetime="2017-10-25">2017-10-25</time>
