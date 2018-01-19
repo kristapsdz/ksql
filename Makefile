@@ -93,7 +93,7 @@ install: libksql.a
 	$(INSTALL_DATA) $(MANS) $(DESTDIR)$(MANDIR)/man3
 
 clean:
-	rm -f libksql.a compats.o ksql.o $(HTMLS) ksql.tar.gz test
+	rm -f libksql.a compats.o ksql.o $(HTMLS) ksql.tar.gz test test.db
 
 distclean: clean
 	rm -f Makefile.configure config.h config.log
