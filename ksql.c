@@ -174,6 +174,7 @@ enum	ksqlop {
 	KSQLOP_LASTID, /* ksql_lastid */
 	KSQLOP_OPEN, /* ksql_open */
 	KSQLOP_STMT_ALLOC, /* ksql_stmt_alloc */
+	KSQLOP_STMT_ALLOC_STORED, /* ksql_stmt_alloc */
 	KSQLOP_STMT_FREE, /* ksql_stmt_free */
 	KSQLOP_STMT_RESET, /* ksql_stmt_reset */
 	KSQLOP_STMT_STEP, /* ksql_stmt_step */
@@ -201,6 +202,7 @@ static	const char *const ksqlops[] = {
 	"LASTID", /* KSQLOP_LASTID */
 	"OPEN", /* KSQLOP_OPEN */
 	"STMT_ALLOC", /* KSQLOP_STMT_ALLOC */
+	"STMT_ALLOC_STORED", /* KSQLOP_STMT_ALLOC_STORED */
 	"STMT_FREE", /* KSQLOP_STMT_FREE */
 	"STMT_RESET", /* KSQLOP_STMT_RESET */
 	"STMT_STEP", /* KSQLOP_STMT_STEP */
@@ -845,18 +847,29 @@ ksqlsrv_bind(struct ksql *p, enum ksqlop op)
  * TODO: use a string buffer for "sql".
  */
 static enum ksqlc
-ksqlsrv_stmt_alloc(struct ksql *p)
+ksqlsrv_stmt_alloc(struct ksql *p, int usestore)
 {
 	struct ksqlstmt	*ss;
-	char		*sql = NULL;
+	char		*sqlp = NULL;
+	const char	*sql;
 	size_t		 id;
 	enum ksqlc	 c, cc;
 
-	if (KSQL_OK != (c = ksql_readstr(p, &sql)))
-		return(c);
+	if ( ! usestore) {
+		if (KSQL_OK != (c = ksql_readstr(p, &sqlp)))
+			return(c);
+		sql = sqlp;
+	}
+
 	if (KSQL_OK != (c = ksql_readsz(p, &id))) {
-		free(sql);
+		free(sqlp);
 		return(c);
+	}
+
+	if (usestore) {
+		assert(id <= p->stmtsz);
+		sql = p->stmts[id];
+		assert(NULL != sql);
 	}
 
 	/* 
@@ -866,7 +879,7 @@ ksqlsrv_stmt_alloc(struct ksql *p)
 	 */
 
 	cc = ksql_stmt_alloc(p, &ss, sql, id);
-	free(sql);
+	free(sqlp);
 
 	if (KSQL_OK != (c = ksql_writecode(p, cc)))
 		return(c);
@@ -1221,7 +1234,10 @@ ksql_alloc_child(const struct ksqlcfg *cfg,
 			c = ksqlsrv_open(p);
 			break;
 		case (KSQLOP_STMT_ALLOC):
-			c = ksqlsrv_stmt_alloc(p);
+			c = ksqlsrv_stmt_alloc(p, 0);
+			break;
+		case (KSQLOP_STMT_ALLOC_STORED):
+			c = ksqlsrv_stmt_alloc(p, 1);
 			break;
 		case (KSQLOP_STMT_FREE):
 			c = ksqlsrv_stmt_free(p);
@@ -1752,10 +1768,18 @@ ksql_stmt_alloc(struct ksql *p,
 	 */
 
 	if (KSQLSRV_ISPARENT(p)) {
-		if (KSQL_OK != (c = ksql_writeop(p, KSQLOP_STMT_ALLOC)))
-			return(c);
-		if (KSQL_OK != (c = ksql_writestr(p, sql)))
-			return(c);
+		if ( ! usestore) {
+			c = ksql_writeop(p, KSQLOP_STMT_ALLOC);
+			if (KSQL_OK != c)
+				return(c);
+			if (KSQL_OK != (c = ksql_writestr(p, sql)))
+				return(c);
+		} else {
+			c = ksql_writeop(p, KSQLOP_STMT_ALLOC_STORED);
+				return(c);
+			if (KSQL_OK != c)
+				return(c);
+		}
 		if (KSQL_OK != (c = ksql_writesz(p, id)))
 			return(c);
 		if (KSQL_OK != (c = ksql_readcode(p, &cc)))
