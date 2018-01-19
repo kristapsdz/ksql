@@ -149,6 +149,7 @@ static	const char * const ksqlcs[] = {
 	"statement(s) open on exit", /* KSQL_STMT */
 	"closing on exit", /* KSQL_EXIT */
 	"system error", /* KSQL_SYSTEM */
+	"stored statement not found", /* KSQL_NOSTORE */
 	NULL, /* KSQL_EOF */
 };
 
@@ -1714,10 +1715,20 @@ ksql_stmt_alloc(struct ksql *p,
 	struct ksqlstmt	*ss, *sp;
 	size_t		 attempt = 0;
 	sqlite3_stmt 	*st;
-	int		 rc;
+	int		 rc, usestore = 0;
 	enum ksqlc	 c, cc;
 
 	*stmt = NULL;
+
+	/* Are we using a stored statement? */
+
+	if (NULL == sql) {
+		if (id >= p->stmtsz)
+			return(ksql_err(p, KSQL_NOSTORE, NULL));
+		sql = p->stmts[id];
+		assert(NULL != sql);
+		usestore = 1;
+	}
 
 	/*
 	 * If we don't have any spare statements to draw from, allocate
