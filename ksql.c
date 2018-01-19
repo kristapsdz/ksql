@@ -1,6 +1,6 @@
 /*	$Id$ */
 /*
- * Copyright (c) 2016--2017 Kristaps Dzonsons <kristaps@bsd.lv>
+ * Copyright (c) 2016--2018 Kristaps Dzonsons <kristaps@bsd.lv>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -114,16 +114,18 @@ struct	ksqld {
  * communicate with the other end of the connection.
  */
 struct	ksql {
-	struct ksqlcfg	 	 cfg;
-	sqlite3			*db;
-	char			*dbfile; /* fname of db */
-	struct ksqlstmtq	 stmt_used; /* used list */
-	struct ksqlstmtq	 stmt_free; /* free list */
-	size_t			 trans; /* current transactions */
-	struct ksqld		*daemon; /* if applicable */
-	unsigned int		 flags;
-#define	KSQLFL_TRANS		 0x01 /* trans is open */
-	TAILQ_ENTRY(ksql)	 entries;
+	char			**stmts; /* stored statements */
+	size_t			  stmtsz; /* number of "stmts" */
+	struct ksqlcfg	 	  cfg;
+	sqlite3			 *db;
+	char			 *dbfile; /* fname of db */
+	struct ksqlstmtq	  stmt_used; /* used list */
+	struct ksqlstmtq	  stmt_free; /* free list */
+	size_t			  trans; /* current transactions */
+	struct ksqld		 *daemon; /* if applicable */
+	unsigned int		  flags;
+#define	KSQLFL_TRANS		  0x01 /* trans is open */
+	TAILQ_ENTRY(ksql)	  entries;
 };
 
 #define	KSQLSRV_ISPARENT(_p) \
@@ -1254,10 +1256,21 @@ struct ksql *
 ksql_alloc(const struct ksqlcfg *cfg)
 {
 	struct ksql	*p;
+	size_t		 i;
 
 	p = calloc(1, sizeof(struct ksql));
 	if (NULL == p)
 		return(NULL);
+
+	if (cfg->stmts.stmtsz && NULL != cfg->stmts.stmts) {
+		p->stmtsz = cfg->stmts.stmtsz;
+		p->stmts = calloc(p->stmtsz, sizeof(char *));
+		for (i = 0; i < p->stmtsz; i++) {
+			p->stmts[i] = strdup(cfg->stmts.stmts[i]);
+			if (NULL == p->stmts[i]) 
+				goto err;
+		}
+	}
 
 	if (NULL == cfg) {
 		/*
@@ -1282,10 +1295,8 @@ ksql_alloc(const struct ksqlcfg *cfg)
 		 * atexit(3) calls (we're limited).
 		 */
 		if (0 == atexits) {
-			if (-1 == atexit(ksql_atexit)) {
-				free(p);
-				return(NULL);
-			}
+			if (-1 == atexit(ksql_atexit))
+				goto err;
 			atexits = 1;
 			/* 
 			 * Note: we don't set dojmp until after
@@ -1309,6 +1320,12 @@ ksql_alloc(const struct ksqlcfg *cfg)
 	TAILQ_INIT(&p->stmt_used);
 	TAILQ_INIT(&p->stmt_free);
 	return(p);
+err:
+	for (i = 0; i < p->stmtsz; i++)
+		free(p->stmts[i]);
+	free(p);
+	return(NULL);
+
 }
 
 static enum ksqlc 
@@ -1418,6 +1435,7 @@ ksql_free_inner(struct ksql *p, int onexit)
 {
 	struct ksqlstmt	*stmt;
 	enum ksqlc	 er = KSQL_OK;
+	size_t		 i;
 
 	if (NULL == p)
 		return(KSQL_OK);
@@ -1446,6 +1464,8 @@ ksql_free_inner(struct ksql *p, int onexit)
 		ksql_jmp_end();
 	}
 
+	for (i = 0; i < p->stmtsz; i++)
+		free(p->stmts[i]);
 	free(p->daemon);
 	free(p);
 	return(er);

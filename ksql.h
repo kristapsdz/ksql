@@ -1,6 +1,6 @@
 /*	$Id$ */
 /*
- * Copyright (c) 2016--2017 Kristaps Dzonsons <kristaps@bsd.lv>
+ * Copyright (c) 2016--2018 Kristaps Dzonsons <kristaps@bsd.lv>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -39,7 +39,23 @@ enum ksqlc {
 typedef	void (*ksqldbmsg)(void *, int, int, const char *, const char *);
 typedef	void (*ksqlmsg)(void *, enum ksqlc, const char *, const char *);
 
+#if 0
+struct	ksqlrole {
+	size_t		  id;
+	struct ksqlrole	 *roles;
+	size_t		  rolesz;
+	size_t		 *stmts;
+	size_t		  stmtsz;
+};
+#endif
+
+struct	ksqlstmts {
+	char		**stmts;
+	size_t		  stmtsz;
+};
+
 struct	ksqlcfg {
+	struct ksqlstmts  stmts;
 	unsigned int	  flags;
 #define	KSQL_EXIT_ON_ERR  0x01
 #define	KSQL_FOREIGN_KEYS 0x02
