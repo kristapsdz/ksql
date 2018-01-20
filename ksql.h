@@ -40,18 +40,8 @@ enum ksqlc {
 typedef	void (*ksqldbmsg)(void *, int, int, const char *, const char *);
 typedef	void (*ksqlmsg)(void *, enum ksqlc, const char *, const char *);
 
-#if 0
-struct	ksqlrole {
-	size_t		  id;
-	struct ksqlrole	 *roles;
-	size_t		  rolesz;
-	size_t		 *stmts;
-	size_t		  stmtsz;
-};
-#endif
-
 struct	ksqlstmts {
-	char		**stmts;
+	const char *const *stmts;
 	size_t		  stmtsz;
 };
 

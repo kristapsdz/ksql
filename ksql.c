@@ -114,8 +114,6 @@ struct	ksqld {
  * communicate with the other end of the connection.
  */
 struct	ksql {
-	char			**stmts; /* stored statements */
-	size_t			  stmtsz; /* number of "stmts" */
 	struct ksqlcfg	 	  cfg;
 	sqlite3			 *db;
 	char			 *dbfile; /* fname of db */
@@ -171,6 +169,7 @@ enum	ksqlop {
 	KSQLOP_COL_ISNULL, /* ksql_stmt_isnull */
 	KSQLOP_COL_STR, /* ksql_stmt_str */
 	KSQLOP_EXEC, /* ksql_exec */
+	KSQLOP_EXEC_STORED, /* ksql_exec */
 	KSQLOP_LASTID, /* ksql_lastid */
 	KSQLOP_OPEN, /* ksql_open */
 	KSQLOP_STMT_ALLOC, /* ksql_stmt_alloc */
@@ -199,6 +198,7 @@ static	const char *const ksqlops[] = {
 	"COL_ISNULL", /* KSQLOP_COL_ISNULL */
 	"COL_STR", /* KSQLOP_COL_STR */
 	"EXEC", /* KSQL_EXEC */
+	"EXEC_STORED", /* KSQL_EXEC_STORED */
 	"LASTID", /* KSQLOP_LASTID */
 	"OPEN", /* KSQLOP_OPEN */
 	"STMT_ALLOC", /* KSQLOP_STMT_ALLOC */
@@ -758,16 +758,32 @@ ksqlsrv_open(struct ksql *p)
 }
 
 static enum ksqlc
-ksqlsrv_exec(struct ksql *p)
+ksqlsrv_exec(struct ksql *p, int usestore)
 {
 	enum ksqlc	 c, cc;
-	char		*sql;
+	char		*sqlp = NULL;
+	size_t		 id;
+	const char	*sql = NULL;
 
-	if (KSQL_OK != (c = ksql_readstr(p, &sql)))
+	if ( ! usestore) {
+		if (KSQL_OK != (c = ksql_readstr(p, &sqlp)))
+			return(c);
+		sql = sqlp;
+	}
+
+	if (KSQL_OK != (c = ksql_readsz(p, &id))) {
+		free(sqlp);
 		return(c);
-	/* TODO: id is ignored */
-	cc = ksql_exec(p, sql, 0);
-	free(sql);
+	}
+
+	if (usestore) {
+		assert(id < p->cfg.stmts.stmtsz);
+		sql = p->cfg.stmts.stmts[id];
+	}
+
+	assert(NULL != sql);
+	cc = ksql_exec(p, sql, id);
+	free(sqlp);
 	return(ksql_writecode(p, cc));
 }
 
@@ -851,7 +867,7 @@ ksqlsrv_stmt_alloc(struct ksql *p, int usestore)
 {
 	struct ksqlstmt	*ss;
 	char		*sqlp = NULL;
-	const char	*sql;
+	const char	*sql = NULL;
 	size_t		 id;
 	enum ksqlc	 c, cc;
 
@@ -867,9 +883,8 @@ ksqlsrv_stmt_alloc(struct ksql *p, int usestore)
 	}
 
 	if (usestore) {
-		assert(id <= p->stmtsz);
-		sql = p->stmts[id];
-		assert(NULL != sql);
+		assert(id < p->cfg.stmts.stmtsz);
+		sql = p->cfg.stmts.stmts[id];
 	}
 
 	/* 
@@ -878,6 +893,7 @@ ksqlsrv_stmt_alloc(struct ksql *p, int usestore)
 	 * database, so we don't need to manage the pointer.
 	 */
 
+	assert(NULL != sql);
 	cc = ksql_stmt_alloc(p, &ss, sql, id);
 	free(sqlp);
 
@@ -1225,7 +1241,10 @@ ksql_alloc_child(const struct ksqlcfg *cfg,
 			c = ksqlsrv_stmt_str(p);
 			break;
 		case (KSQLOP_EXEC):
-			c = ksqlsrv_exec(p);
+			c = ksqlsrv_exec(p, 0);
+			break;
+		case (KSQLOP_EXEC_STORED):
+			c = ksqlsrv_exec(p, 1);
 			break;
 		case (KSQLOP_LASTID):
 			c = ksqlsrv_lastid(p);
@@ -1273,21 +1292,10 @@ struct ksql *
 ksql_alloc(const struct ksqlcfg *cfg)
 {
 	struct ksql	*p;
-	size_t		 i;
 
 	p = calloc(1, sizeof(struct ksql));
 	if (NULL == p)
 		return(NULL);
-
-	if (cfg->stmts.stmtsz && NULL != cfg->stmts.stmts) {
-		p->stmtsz = cfg->stmts.stmtsz;
-		p->stmts = calloc(p->stmtsz, sizeof(char *));
-		for (i = 0; i < p->stmtsz; i++) {
-			p->stmts[i] = strdup(cfg->stmts.stmts[i]);
-			if (NULL == p->stmts[i]) 
-				goto err;
-		}
-	}
 
 	if (NULL == cfg) {
 		/*
@@ -1338,8 +1346,6 @@ ksql_alloc(const struct ksqlcfg *cfg)
 	TAILQ_INIT(&p->stmt_free);
 	return(p);
 err:
-	for (i = 0; i < p->stmtsz; i++)
-		free(p->stmts[i]);
 	free(p);
 	return(NULL);
 
@@ -1452,7 +1458,6 @@ ksql_free_inner(struct ksql *p, int onexit)
 {
 	struct ksqlstmt	*stmt;
 	enum ksqlc	 er = KSQL_OK;
-	size_t		 i;
 
 	if (NULL == p)
 		return(KSQL_OK);
@@ -1481,8 +1486,6 @@ ksql_free_inner(struct ksql *p, int onexit)
 		ksql_jmp_end();
 	}
 
-	for (i = 0; i < p->stmtsz; i++)
-		free(p->stmts[i]);
 	free(p->daemon);
 	free(p);
 	return(er);
@@ -1495,30 +1498,71 @@ ksql_free(struct ksql *p)
 	return(ksql_free_inner(p, 0));
 }
 
+/*
+ * Execute a statement directly without any checks.
+ * This is used for child-internal processing (like opening
+ * transactions) and as the eventual target for ksql_exec() in the child
+ * process, or the caller of a non-split-process.
+ */
+static enum ksqlc
+ksql_exec_private(struct ksql *p, const char *sql)
+{
+	enum ksqlc	 c;
+
+	c = ksql_exec_inner(p, sql);
+
+	if (KSQL_DB == c)
+		return(ksql_dberr(p));
+	else if (KSQL_OK != c)
+		return(ksql_err(p, c, NULL));
+
+	return(c);
+}
+
+/*
+ * The logic here is almost identical to ksql_stmt_alloc().
+ * Note that we sometimes call ksql_exec() from within the child process
+ * directly (e.g., in ksql_open).
+ */
 enum ksqlc
 ksql_exec(struct ksql *p, const char *sql, size_t id)
 {
 	enum ksqlc	c, cc;
+	int		usestore = 0;
 
-	(void)id; /* FOR NOW */
+	/* 
+	 * Check if configuration requires stored statements. 
+	 * If so, ignore "sql" and prime it to the stored version.
+	 */
+
+	if (p->cfg.stmts.stmtsz) {
+		if (id >= p->cfg.stmts.stmtsz)
+			return(ksql_err(p, KSQL_NOSTORE, NULL));
+		sql = p->cfg.stmts.stmts[id];
+		assert(NULL != sql);
+		usestore = 1;
+	}
 
 	if (KSQLSRV_ISPARENT(p)) {
-		if (KSQL_OK != (c = ksql_writeop(p, KSQLOP_EXEC)))
-			return(c);
-		if (KSQL_OK != (c = ksql_writestr(p, sql)))
+		if ( ! usestore) {
+			c = ksql_writeop(p, KSQLOP_EXEC);
+			if (KSQL_OK != c)
+				return(c);
+			if (KSQL_OK != (c = ksql_writestr(p, sql)))
+				return(c);
+		} else {
+			c = ksql_writeop(p, KSQLOP_EXEC_STORED);
+			if (KSQL_OK != c)
+				return(c);
+		}
+		if (KSQL_OK != (c = ksql_writesz(p, id)))
 			return(c);
 		if (KSQL_OK != (c = ksql_readcode(p, &cc)))
 			return(c);
 		return(cc);
 	}
 
-	c = ksql_exec_inner(p, sql);
-	if (KSQL_DB == c)
-		return(ksql_dberr(p));
-	else if (KSQL_NOTOPEN == c)
-		return(ksql_err(p, c, NULL));
-
-	return(KSQL_OK);
+	return(ksql_exec_private(p, sql));
 }
 
 enum ksqlc
@@ -1570,8 +1614,9 @@ again:
 		return(ksql_dberr(p));
 
 	/* Handle required foreign key invocation. */
+
 	return(KSQL_FOREIGN_KEYS & p->cfg.flags ?
-		ksql_exec(p, "PRAGMA foreign_keys = ON;", SIZE_MAX) :
+		ksql_exec_private(p, "PRAGMA foreign_keys = ON;") :
 		KSQL_OK);
 }
 
@@ -1736,12 +1781,15 @@ ksql_stmt_alloc(struct ksql *p,
 
 	*stmt = NULL;
 
-	/* Are we using a stored statement? */
+	/* 
+	 * Check if configuration requires stored statements. 
+	 * If so, ignore "sql" and prime it to the stored version.
+	 */
 
-	if (NULL == sql) {
-		if (id >= p->stmtsz)
+	if (p->cfg.stmts.stmtsz) {
+		if (id >= p->cfg.stmts.stmtsz)
 			return(ksql_err(p, KSQL_NOSTORE, NULL));
-		sql = p->stmts[id];
+		sql = p->cfg.stmts.stmts[id];
 		assert(NULL != sql);
 		usestore = 1;
 	}
@@ -1776,6 +1824,7 @@ ksql_stmt_alloc(struct ksql *p,
 				return(c);
 		} else {
 			c = ksql_writeop(p, KSQLOP_STMT_ALLOC_STORED);
+			if (KSQL_OK != c)
 				return(c);
 			if (KSQL_OK != c)
 				return(c);
@@ -1961,8 +2010,8 @@ ksql_trans_close_inner(struct ksql *p, size_t mode, size_t id)
 	}
 
 	c = mode ?
-		ksql_exec(p, "ROLLBACK TRANSACTION", SIZE_MAX) :
-		ksql_exec(p, "COMMIT TRANSACTION", SIZE_MAX);
+		ksql_exec_private(p, "ROLLBACK TRANSACTION") :
+		ksql_exec_private(p, "COMMIT TRANSACTION");
 
 	/* Set this only if the exec succeeded.*/
 
@@ -2003,11 +2052,11 @@ ksql_trans_open_inner(struct ksql *p, size_t mode, size_t id)
 	assert(mode <= 2);
 
 	if (2 == mode)
-		c = ksql_exec(p, "BEGIN EXCLUSIVE", SIZE_MAX);
+		c = ksql_exec_private(p, "BEGIN EXCLUSIVE");
 	else if (1 == mode)
-		c = ksql_exec(p, "BEGIN IMMEDIATE", SIZE_MAX);
+		c = ksql_exec_private(p, "BEGIN IMMEDIATE");
 	else
-		c = ksql_exec(p, "BEGIN DEFERRED", SIZE_MAX);
+		c = ksql_exec_private(p, "BEGIN DEFERRED");
 
 	/* Set this only if the exec succeeded.*/
 
