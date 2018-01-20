@@ -27,6 +27,11 @@
 
 #include "ksql.h"
 
+static	const char *const stmts[] = {
+	"INSERT INTO test (foo,bar,baz,xyzzy) VALUES (?,?,?,?)",
+	"SELECT foo,bar,baz,xyzzy,id FROM test"
+};
+
 int
 main(void)
 {
@@ -47,6 +52,8 @@ main(void)
 	cfg.flags = KSQL_EXIT_ON_ERR | KSQL_SAFE_EXIT;
 	cfg.err = ksqlitemsg;
 	cfg.dberr = ksqlitedbmsg;
+	cfg.stmts.stmts = stmts;
+	cfg.stmts.stmtsz = 2;
 
 	if (NULL == (sql = ksql_alloc_child(&cfg, NULL, NULL)))
 		errx(EXIT_FAILURE, "ksql_alloc_child");
@@ -62,9 +69,7 @@ main(void)
 	if (KSQL_OK != ksql_trans_open(sql, 0))
 		errx(EXIT_FAILURE, "ksql_trans_open");
 
-	if (KSQL_OK != ksql_stmt_alloc(sql, &stmt, 
-	    "INSERT INTO test (foo,bar,baz,xyzzy) "
-	    "VALUES (?,?,?,?)", 1))
+	if (KSQL_OK != ksql_stmt_alloc(sql, &stmt, NULL, 0))
 		errx(EXIT_FAILURE, "ksql_stmt_alloc");
 	for (i = 0; i < 10; i++) {
 #if HAVE_ARC4RANDOM
@@ -112,8 +117,7 @@ main(void)
 	if (KSQL_OK != ksql_trans_commit(sql, 0))
 		errx(EXIT_FAILURE, "ksql_trans_open");
 
-	if (KSQL_OK != ksql_stmt_alloc(sql, &stmt, 
-	    "SELECT foo,bar,baz,xyzzy,id FROM test", 0))
+	if (KSQL_OK != ksql_stmt_alloc(sql, &stmt, NULL, 1))
 		errx(EXIT_FAILURE, "ksql_stmt_alloc");
 
 	i = 0;
