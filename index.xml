@@ -28,6 +28,7 @@
 						<li><a href="ksql_alloc.3.html">ksql_alloc(3)</a></li>
 						<li><a href="ksql_alloc_child.3.html">ksql_alloc_child(3)</a></li>
 						<li><a href="ksql_bind_double.3.html">ksql_bind_double(3)</a></li>
+						<li><a href="ksql_cfg_defaults.3.html">ksql_cfg_defaults(3)</a></li>
 						<li><a href="ksql_close.3.html">ksql_close(3)</a></li>
 						<li><a href="ksql_exec.3.html">ksql_exec(3)</a></li>
 						<li><a href="ksql_free.3.html">ksql_free(3)</a></li>
@@ -75,7 +76,7 @@
 							X</span>.  
 						It is a <a href="https://www.bsd.lv">BSD.lv</a> project.
 					</p>
-					<nav data-sblg-nav="1" data-sblg-navsz="4" data-sblg-navcontent="1">
+					<nav data-sblg-nav="1" data-sblg-navsz="10" data-sblg-navcontent="1">
 						<div>
 							Version <span class="version">${sblg-title}</span> 
 							(<time datetime="${sblg-date}">${sblg-date}</time>)
