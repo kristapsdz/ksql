@@ -70,6 +70,7 @@ enum ksqlc	 ksql_bind_int(struct ksqlstmt *, size_t, int64_t);
 enum ksqlc	 ksql_bind_null(struct ksqlstmt *, size_t);
 enum ksqlc	 ksql_bind_str(struct ksqlstmt *, size_t, const char *);
 enum ksqlc	 ksql_bind_zblob(struct ksqlstmt *, size_t, size_t);
+void		 ksql_cfg_defaults(struct ksqlcfg *);
 enum ksqlc	 ksql_close(struct ksql *);
 enum ksqlc	 ksql_exec(struct ksql *, const char *, size_t);
 enum ksqlc	 ksql_free(struct ksql *);

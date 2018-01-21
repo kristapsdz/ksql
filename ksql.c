@@ -183,6 +183,7 @@ enum	ksqlop {
 	KSQLOP_UNTRACE, /* ksql_untrace */
 };
 
+#if 0
 static	const char *const ksqlops[] = {
 	"BIND_BLOB", /* KSQLOP_BIND_BLOB */
 	"BIND_DOUBLE", /* KSQLOP_BIND_DOUBLE */
@@ -211,6 +212,7 @@ static	const char *const ksqlops[] = {
 	"TRANS_OPEN", /* KSQLOP_TRANS_OPEN */
 	"UNTRACE", /* KSQLOP_UNTRACE */
 };
+#endif
 
 /*
  * Forward declarations.
@@ -1288,6 +1290,22 @@ ksql_alloc_child(const struct ksqlcfg *cfg,
 	exit(KSQL_EOF == c ? EXIT_SUCCESS : EXIT_FAILURE);
 }
 
+void
+ksql_cfg_defaults(struct ksqlcfg *cfg)
+{
+	/*
+	 * Make some safe defaults here.
+	 * Specifically, log all of our database and `soft'
+	 * errors to stderr and make us bail on exit, as well
+	 * trying to catch signals/exits.
+	 */
+
+	memset(cfg, 0, sizeof(struct ksqlcfg));
+	cfg->dberr = ksqlitedbmsg;
+	cfg->err = ksqlitemsg;
+	cfg->flags = KSQL_EXIT_ON_ERR | KSQL_SAFE_EXIT;
+}
+
 struct ksql *
 ksql_alloc(const struct ksqlcfg *cfg)
 {
@@ -1297,17 +1315,9 @@ ksql_alloc(const struct ksqlcfg *cfg)
 	if (NULL == p)
 		return(NULL);
 
-	if (NULL == cfg) {
-		/*
-		 * Make some safe defaults here.
-		 * Specifically, log all of our database and `soft'
-		 * errors to stderr and make us bail on exit, as well
-		 * trying to catch signals/exits.
-		 */
-		p->cfg.dberr = ksqlitedbmsg;
-		p->cfg.err = ksqlitemsg;
-		p->cfg.flags = KSQL_EXIT_ON_ERR | KSQL_SAFE_EXIT;
-	} else
+	if (NULL == cfg)
+		ksql_cfg_defaults(&p->cfg);
+	else
 		p->cfg = *cfg;
 
 	/*
