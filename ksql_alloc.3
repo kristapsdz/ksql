@@ -49,111 +49,9 @@ If
 .Fa cfg
 is
 .Dv NULL ,
-useful defaults are used.
-The defaults on
-.Fa cfg
-are that the
-.Dv KSQL_EXIT_ON_ERR
-and
-.Dv KSQL_SAFE_EXIT
-flags are set, which means that any errors in using database routines
-will trigger an exit; and upon exiting in such a state, the database
-will be properly cleaned up.
-Moreover, a simple message will be written to
-.Dv stderr
-with the full error message and error code for both regular and database
-errors.
-.Pp
-The
-.Vt struct ksqlconfig
-structure consists of the following:
-.Bl -tag -width Ds
-.It Va unsigned int flags
-A bit-field which may consists of
-.Dv KSQL_EXIT_ON_ERR ,
-which causes the system to
-.Xr exit 3
-if any database errors occur;
-.Dv KSQL_FOREIGN_KEYS ,
-which causes the database to be subsequently opened with foreign key
-support; and
-.Dv KSQL_SAFE_EXIT ,
-which causes the library to register an
-.Xr atexit 3
-hook to free the database if it hasn't be freed prior to exit.
-The
-.Dv KSQL_SAFE_EXIT
-flag will also cause the
-.Dv SIGABRT
-and
-.Dv SIGSEGV
-signals to be caught and
-.Xr siglongjmp 3
-into an exit handler, which will then close out open databases.
-.It Va ksqlmsg err
-Supply a function that will be invoked upon a non-database error, for
-example, memory allocation.
-.It Va ksqldbmsg dberr
-A function that will be invoked upon a database error, for example, if
-.Xr sqlite3_step 3
-does not return an
-.Dv SQLITE_DONE
-or
-.Dv SQLITE_ROW
-code.
-.It Va arg
-The private argument passed to
-.Va err
-and
-.Va dberr .
-.El
-.Pp
-The
-.Vt ksqlmsg
-function is invoked as
-.Ft void
-.Fo ksqlmsg
-.Fa "void *arg"
-.Fa "enum ksqlc code"
-.Fa "const char *file"
-.Fa "const char *msg"
-.Fc ,
-with
-.Fa arg
-being the private argument,
-.Fa argc
-being the error code in question,
-the database
-.Fa file
-.Po which may be
-.Dv NULL Pc ,
-and
-.Fa msg
-being an ASCII string describing the error (in English).
-.Pp
-The
-.Vt ksqldbmsg
-function is
-.Ft void
-.Fo ksqldbmsg
-.Fa "void *arg"
-.Fa "int sqlerr"
-.Fa "int sqlexterr"
-.Fa "const char *file"
-.Fa "const char *msg"
-.Fc ,
-which also has the
-.Fa sqlerr
-and
-.Fa sqlexterr
-SQLite error and extended error code, and and the SQLite string error
-message
-.Fa msg .
-The library exports two functions,
-.Fn ksqlitemsg
-and
-.Fn ksqlitedbmsg ,
-which are used as the defaults.
+a configuration from
+.Xr ksql_cfg_defaults 3
+is used.
 .\" .Sh CONTEXT
 .\" For section 9 functions only.
 .\" .Sh IMPLEMENTATION NOTES
@@ -175,6 +73,7 @@ if memory allocations failed.
 .\" For sections 2, 3, 4, and 9 errno settings only.
 .Sh SEE ALSO
 .Xr ksql_alloc_child 3 ,
+.Xr ksql_cfg_defaults 3 ,
 .Xr ksql_free 3
 .\" .Sh STANDARDS
 .\" .Sh HISTORY

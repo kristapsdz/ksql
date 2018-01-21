@@ -57,7 +57,10 @@ If
 .Fa cfg
 is
 .Dv NULL ,
-useful defaults are used.
+a configuration from
+.Xr ksql_cfg_defaults 3
+is used.
+.Pp
 The
 .Fa onfork
 function, if specified, is invoked by the child after a successful
@@ -65,29 +68,9 @@ function, if specified, is invoked by the child after a successful
 with the
 .Fa arg
 variable.
-.Em Note :
-the process environment within which
+The process environment within which
 .Fa onfork
 is invoked is prior to its being sandboxed.
-.Pp
-The defaults on
-.Fa cfg
-are that the
-.Dv KSQL_EXIT_ON_ERR
-and
-.Dv KSQL_SAFE_EXIT
-flags are set, which means that any errors in using database routines
-will trigger an exit; and upon exiting in such a state, the database
-will be properly cleaned up.
-Moreover, a simple message will be written to
-.Dv stderr
-with the full error message and error code for both regular and database
-errors.
-.Pp
-The
-.Vt struct ksqlconfig
-structure is documented in
-.Xr ksql_alloc 3 .
 .\" .Sh CONTEXT
 .\" For section 9 functions only.
 .\" .Sh IMPLEMENTATION NOTES
@@ -109,6 +92,7 @@ if memory allocations failed.
 .\" For sections 2, 3, 4, and 9 errno settings only.
 .Sh SEE ALSO
 .Xr ksql_alloc 3 ,
+.Xr ksql_cfg_defaults 3 ,
 .Xr ksql_free 3
 .\" .Sh STANDARDS
 .\" .Sh HISTORY
