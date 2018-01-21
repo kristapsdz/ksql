@@ -18,9 +18,49 @@
 #define KSQL_H
 
 /*
+ * Stringification of version major, minor, and build.
+ * I have on idea if this is necessary.
+ */
+#define NAME(s) NAME0(s)
+#define NAME0(s) #s
+#define NAME2(x,y,z) x ## . ## y ## . ## z
+#define NAME1(x,y,z) NAME2(x,y,z)
+
+/*
+ * Major version.
+ */
+#define	KSQL_VMAJOR	0
+
+/*
+ * Minor version.
+ */
+#define	KSQL_VMINOR	1
+
+/*
+ * Build version.
+ */
+#define	KSQL_VBUILD	4
+
+/*
+ * Version string of major.minor.build (as a literal string).
+ */
+#define	KSQL_VERSION	NAME(NAME1(KSQL_VMAJOR,KSQL_VMINOR,KSQL_VBUILD))
+
+/*
+ * Integral stamp of version.
+ * Guaranteed to be increasing with build, minor, and major.
+ * (Assumes build and minor never go over 100.)
+ */
+#define	KSQL_VSTAMP \
+	((KSQL_VBUILD+1) + \
+	 (KSQL_VMINOR+1)*100 + \
+	 (KSQL_VMAJOR+1)*10000)
+
+/*
  * Error codes returned by all functions.
  * In general, checking for zero means success.
  */
+
 enum ksqlc {
 	KSQL_OK = 0, /* success */
 	KSQL_DONE, /* data done */
