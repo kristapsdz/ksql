@@ -38,11 +38,24 @@ function executes
 .Fa stmt
 on an open database connection
 .Fa sql .
-It is identified as
-.Fa id ,
-although this value is not yet used (it should not, however, be
-.Dv SIZE_MAX ,
-which is reserved for internal usage).
+The
+.Fa id
+is used to identify the statement in error messages and should uniquely
+identify the statement. 
+.Pp
+If a non-empty
+.Fa stmts
+structure documented in
+.Xr ksql_cfg_defaults 3
+is passed to
+.Xr ksql_alloc 3
+or
+.Xr ksql_alloc_child 3 ,
+the stored statement is looked up by
+.Fa id
+and the
+.Fa sql
+value is ignored.
 .Pp
 This function handles a locked database (specifically,
 .Dv SQLITE_BUSY ,
@@ -62,6 +75,10 @@ if the database connection has not been opeend,
 on database errors, or
 .Dv KSQL_OK
 otherwise.
+.Dv KSQL_NOSTORE
+is returned if the stored statement
+.Fa id
+could not be found.
 .\" For sections 2, 3, and 9 function return values only.
 .\" .Sh ENVIRONMENT
 .\" For sections 1, 6, 7, and 8 only.

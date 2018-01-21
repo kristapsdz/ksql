@@ -46,9 +46,24 @@ It must be matched by a call to
 Upon success, this will fill in the
 .Fa stmt
 pointer.
-The idenitfier
+The
 .Fa id
-is currently not used.
+is used to identify the statement in error messages and should uniquely
+identify the statement. 
+.Pp
+If a non-empty
+.Fa stmts
+structure documented in
+.Xr ksql_cfg_defaults 3
+is passed to
+.Xr ksql_alloc 3
+or
+.Xr ksql_alloc_child 3 ,
+the stored statement is looked up by
+.Fa id
+and the
+.Fa sql
+value is ignored.
 .Pp
 The
 .Nm
@@ -74,6 +89,10 @@ if there were errors invoking
 otherwise
 .Dv KSQL_OK
 on success.
+.Dv KSQL_NOSTORE
+is returned if the stored statement
+.Fa id
+could not be found.
 .\" For sections 2, 3, and 9 function return values only.
 .\" .Sh ENVIRONMENT
 .\" For sections 1, 6, 7, and 8 only.

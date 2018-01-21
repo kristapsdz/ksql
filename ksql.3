@@ -42,7 +42,15 @@ your database.
 The typical usage scenario is as follows:
 .Bl -enum
 .It
+assign configuration defaults with
+.Xr ksql_cfg_defaults 3
+and pre-set SQL statements in the
+.Fa stmts
+array;
+.It
 allocate a handle with
+.Xr ksql_alloc_child 3
+or, for reduced security,
 .Xr ksql_alloc 3 ;
 .It
 open a database connection on that handle with
