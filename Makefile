@@ -32,6 +32,7 @@ MANS	 = ksql.3 \
 	   ksql_alloc.3 \
 	   ksql_alloc_child.3 \
 	   ksql_bind_double.3 \
+	   ksql_cfg_defaults.3 \
 	   ksql_close.3 \
 	   ksql_exec.3 \
 	   ksql_free.3 \
