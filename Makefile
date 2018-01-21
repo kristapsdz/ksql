@@ -11,6 +11,7 @@ HTMLS	 = index.html \
 	   ksql_alloc.3.html \
 	   ksql_alloc_child.3.html \
 	   ksql_bind_double.3.html \
+	   ksql_cfg_defaults.3.html \
 	   ksql_close.3.html \
 	   ksql_exec.3.html \
 	   ksql_free.3.html \
