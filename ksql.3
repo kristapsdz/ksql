@@ -25,6 +25,11 @@
 .Sh SYNOPSIS
 .In stdint.h
 .In ksql.h
+.Fd #define KSQL_VMAJOR x
+.Fd #define KSQL_VMINOR y
+.Fd #define KSQL_VBUILD z
+.Fd #define KSQL_VERSION "x.y.z"
+.Fd #define KSQL_VSTAMP xxxyyyzzz
 .Sh DESCRIPTION
 The
 .Nm ksql
@@ -66,6 +71,19 @@ and
 Invoke
 .Dq apropos ksql
 to see all functions.
+.Pp
+The current version of the database is defined in
+.Dv KSQL_VERSION
+as a string of major number, minor number, and build.
+These values are available seperately as
+.Dv KSQL_VMAJOR ,
+.Dv KSQL_VMINOR ,
+and
+.Dv KSQL_VBUILD ,
+respectively.
+A numeric concatenation of the version is defined as
+.Dv KSQL_VSTAMP ,
+which may be used to test for version number applicability.
 .Ss Database safety
 By default (see
 .Xr ksql_alloc 3
@@ -148,6 +166,7 @@ and
 .Xr ksql_bind_int 3 ,
 .Xr ksql_bind_str 3 ,
 .Xr ksql_bind_zblob 3 ,
+.Xr ksql_cfg_defaults 3 ,
 .Xr ksql_close 3 ,
 .Xr ksql_exec 3 ,
 .Xr ksql_free 3 ,
