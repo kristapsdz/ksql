@@ -1,5 +1,34 @@
 <?xml version="1.0" encoding="UTF-8" ?>
+<!-- vim: set tw=100: -->
 <articles>
+	<article data-sblg-article="1" data-sblg-tags="version">
+		<header>
+			<h1>0.2.0</h1>
+			<address>Kristaps Dzonsons</address>
+			<time datetime="2018-01-20">ongoing</time>
+		</header>
+		<aside>
+			<p>
+				Minor bump to account for new functions and features!
+			</p>
+			<p>
+				Allow stored SQL statements passed to <a
+					href="ksql_alloc.3.html">ksql_alloc(3)</a> and <a
+					href="ksql_alloc_child.3.html">ksql_alloc_child(3)</a>.
+				This is a significant security feature: when passed to <a
+					href="ksql_alloc_child.3.html">ksql_alloc_child(3)</a>, it
+				guarantees that the application process cannot change SQL statements
+				once initialised.
+			</p>
+			<p>
+				Add <a href="ksql_cfg_defaults.3.html">ksql_cfg_defaults(3)</a>.
+			</p>
+			<p>
+				Add version macros as described in <a href="ksql.3.html">ksql(3)</a>.
+				This allows callers to test for version applicability.
+			</p>
+		</aside>
+	</article>
 	<article data-sblg-article="1" data-sblg-tags="version">
 		<header>
 			<h1>0.1.4</h1>
