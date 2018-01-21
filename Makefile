@@ -3,7 +3,10 @@
 include Makefile.configure
 
 WWWDIR	 = /var/www/vhosts/kristaps.bsd.lv/htdocs/ksql
-VERSION	 = 0.1.4
+VMAJOR	!= grep 'define	KSQL_VMAJOR' ksql.h | cut -f3
+VMINOR	!= grep 'define	KSQL_VMINOR' ksql.h | cut -f3
+VBUILD	!= grep 'define	KSQL_VBUILD' ksql.h | cut -f3
+VERSION	:= $(VMAJOR).$(VMINOR).$(VBUILD)
 BUILT	 = index.css \
 	   mandoc.css
 HTMLS	 = index.html \
