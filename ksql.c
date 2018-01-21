@@ -1546,7 +1546,8 @@ ksql_exec(struct ksql *p, const char *sql, size_t id)
 	 */
 
 	if (p->cfg.stmts.stmtsz) {
-		if (id >= p->cfg.stmts.stmtsz)
+		if (id >= p->cfg.stmts.stmtsz ||
+		    NULL == p->cfg.stmts.stmts[id])
 			return(ksql_err(p, KSQL_NOSTORE, NULL));
 		sql = p->cfg.stmts.stmts[id];
 		assert(NULL != sql);
@@ -1797,7 +1798,8 @@ ksql_stmt_alloc(struct ksql *p,
 	 */
 
 	if (p->cfg.stmts.stmtsz) {
-		if (id >= p->cfg.stmts.stmtsz)
+		if (id >= p->cfg.stmts.stmtsz ||
+		    NULL == p->cfg.stmts.stmts[id])
 			return(ksql_err(p, KSQL_NOSTORE, NULL));
 		sql = p->cfg.stmts.stmts[id];
 		assert(NULL != sql);
