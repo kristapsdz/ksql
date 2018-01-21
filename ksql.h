@@ -34,12 +34,12 @@
 /*
  * Minor version.
  */
-#define	KSQL_VMINOR	1
+#define	KSQL_VMINOR	2
 
 /*
  * Build version.
  */
-#define	KSQL_VBUILD	4
+#define	KSQL_VBUILD	0
 
 /*
  * Version string of major.minor.build (as a literal string).
