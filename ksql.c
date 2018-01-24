@@ -1522,7 +1522,20 @@ enum ksqlc
 ksql_exec(struct ksql *p, const char *sql, size_t id)
 {
 	enum ksqlc	c, cc;
-	int		usestore = 0;
+
+	if (KSQLSRV_ISPARENT(p)) {
+		if (NULL == sql)
+			sql = "";
+		if (KSQL_OK != (c = ksql_writeop(p, KSQLOP_EXEC)))
+			return(c);
+		if (KSQL_OK != (c = ksql_writestr(p, sql)))
+			return(c);
+		if (KSQL_OK != (c = ksql_writesz(p, id)))
+			return(c);
+		if (KSQL_OK != (c = ksql_readcode(p, &cc)))
+			return(c);
+		return(cc);
+	}
 
 	/* 
 	 * Check if configuration requires stored statements. 
@@ -1530,31 +1543,9 @@ ksql_exec(struct ksql *p, const char *sql, size_t id)
 	 */
 
 	if (p->cfg.stmts.stmtsz) {
-		if (id >= p->cfg.stmts.stmtsz ||
-		    NULL == p->cfg.stmts.stmts[id])
-			return(ksql_err(p, KSQL_NOSTORE, NULL));
+		assert(id < p->cfg.stmts.stmtsz);
 		sql = p->cfg.stmts.stmts[id];
 		assert(NULL != sql);
-		usestore = 1;
-	}
-
-	if (KSQLSRV_ISPARENT(p)) {
-		if ( ! usestore) {
-			c = ksql_writeop(p, KSQLOP_EXEC);
-			if (KSQL_OK != c)
-				return(c);
-			if (KSQL_OK != (c = ksql_writestr(p, sql)))
-				return(c);
-		} else {
-			c = ksql_writeop(p, KSQLOP_EXEC_STORED);
-			if (KSQL_OK != c)
-				return(c);
-		}
-		if (KSQL_OK != (c = ksql_writesz(p, id)))
-			return(c);
-		if (KSQL_OK != (c = ksql_readcode(p, &cc)))
-			return(c);
-		return(cc);
 	}
 
 	return(ksql_exec_private(p, sql));
