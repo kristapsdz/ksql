@@ -24,6 +24,7 @@ HTMLS	 = index.html \
 	   ksql_stmt_double.3.html \
 	   ksql_stmt_free.3.html \
 	   ksql_stmt_reset.3.html \
+	   ksql_stmt_step.3.html \
 	   ksql_trace.3.html \
 	   ksql_trans_commit.3.html \
 	   ksql_trans_open.3.html \
@@ -42,6 +43,7 @@ MANS	 = ksql.3 \
 	   ksql_stmt_double.3 \
 	   ksql_stmt_free.3 \
 	   ksql_stmt_reset.3 \
+	   ksql_stmt_step.3 \
 	   ksql_trace.3 \
 	   ksql_trans_commit.3 \
 	   ksql_trans_open.3 \
