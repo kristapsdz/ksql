@@ -174,6 +174,7 @@ enum	ksqlop {
 	KSQLOP_EXEC_STORED, /* ksql_exec */
 	KSQLOP_LASTID, /* ksql_lastid */
 	KSQLOP_OPEN, /* ksql_open */
+	KSQLOP_ROLE, /* ksql_role */
 	KSQLOP_STMT_ALLOC, /* ksql_stmt_alloc */
 	KSQLOP_STMT_ALLOC_STORED, /* ksql_stmt_alloc */
 	KSQLOP_STMT_FREE, /* ksql_stmt_free */
@@ -742,6 +743,18 @@ ksqlsrv_close(struct ksql *p)
 	return(ksql_writecode(p, ksql_close(p)));
 }
 
+static enum ksqlc
+ksqlsrv_role(struct ksql *p)
+{
+	enum ksqlc	 c;
+	size_t		 role;
+
+	if (KSQL_OK != (c = ksql_readsz(p, &role)))
+		return(c);
+	ksql_role(p, role);
+	return(ksql_writecode(p, KSQL_OK));
+}
+
 /*
  * Server version of ksql_open().
  * Accepts the filename, runs the open, returns the response.
@@ -1255,6 +1268,9 @@ ksql_alloc_child(const struct ksqlcfg *cfg,
 			break;
 		case (KSQLOP_OPEN):
 			c = ksqlsrv_open(p);
+			break;
+		case (KSQLOP_ROLE):
+			c = ksqlsrv_role(p);
 			break;
 		case (KSQLOP_STMT_ALLOC):
 			c = ksqlsrv_stmt_alloc(p, 0);
@@ -1793,7 +1809,41 @@ ksql_stmt_free(struct ksqlstmt *stmt)
 void
 ksql_role(struct ksql *p, size_t role)
 {
-	size_t	 save = role;
+	size_t	 	 save = role;
+	enum ksqlc	 c, cc;
+	unsigned int	 flags;
+	ksqlmsg		 errmsg;
+
+	/* 
+	 * Here, we override some default behaviour.
+	 * First, we stipulate that we'll always fail on write errors to
+	 * the child.
+	 * This protects us from not checking the error code and not
+	 * having changed roles.
+	 * Second, we make sure our error message logger isn't set.
+	 * This protects us from having the caller do funny things when
+	 * the error handler is invoked.
+	 */
+
+	if (KSQLSRV_ISPARENT(p)) {
+		flags = p->cfg.flags;
+		errmsg = p->cfg.err;
+
+		p->cfg.flags |= KSQL_EXIT_ON_ERR;
+		p->cfg.err = NULL;
+
+		c = ksql_writeop(p, KSQLOP_ROLE);
+		assert(KSQL_OK == c);
+		c = ksql_writesz(p, role);
+		assert(KSQL_OK == c);
+		c = ksql_readcode(p, &cc);
+		assert(KSQL_OK == c);
+		assert(KSQL_OK == cc);
+
+		p->cfg.flags = flags;
+		p->cfg.err = errmsg;
+		return;
+	}
 
 	/* Require roles to be enabled. */
 
