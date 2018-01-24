@@ -80,13 +80,27 @@ enum ksqlc {
 typedef	void (*ksqldbmsg)(void *, int, int, const char *, const char *);
 typedef	void (*ksqlmsg)(void *, enum ksqlc, const char *, const char *);
 
+/* XXX: not yet documented. */
+struct	ksqlrole {
+	size_t		   parent;
+	const int	  *stmts;
+};
+
+/* XXX: not yet documented. */
+struct	ksqlroles {
+	struct ksqlrole	  *roles;
+	size_t		   rolesz;
+	size_t		   defrole;
+};
+
 struct	ksqlstmts {
 	const char *const *stmts;
-	size_t		  stmtsz;
+	size_t		   stmtsz;
 };
 
 struct	ksqlcfg {
 	struct ksqlstmts  stmts;
+	struct ksqlroles  roles; /* XXX: not yet documented */
 	unsigned int	  flags;
 #define	KSQL_EXIT_ON_ERR  0x01
 #define	KSQL_FOREIGN_KEYS 0x02
@@ -116,6 +130,7 @@ enum ksqlc	 ksql_exec(struct ksql *, const char *, size_t);
 enum ksqlc	 ksql_free(struct ksql *);
 enum ksqlc	 ksql_lastid(struct ksql *, int64_t *);
 enum ksqlc	 ksql_open(struct ksql *, const char *);
+void		 ksql_role(struct ksql *, size_t);
 enum ksqlc	 ksql_stmt_alloc(struct ksql *, 
 			struct ksqlstmt **, const char *, size_t);
 const void	*ksql_stmt_blob(struct ksqlstmt *, size_t);

@@ -115,6 +115,8 @@ struct	ksqld {
  */
 struct	ksql {
 	struct ksqlcfg	 	  cfg;
+	size_t			  role; /* current role */
+	int			  roleset; /* role has been set? */
 	sqlite3			 *db;
 	char			 *dbfile; /* fname of db */
 	struct ksqlstmtq	  stmt_used; /* used list */
@@ -1320,10 +1322,18 @@ ksql_alloc(const struct ksqlcfg *cfg)
 	else
 		p->cfg = *cfg;
 
+	/* 
+	 * Start in default role.
+	 * Has no practical effect if roles are disabled.
+	 */
+
+	p->role = p->cfg.roles.defrole;
+
 	/*
 	 * If we're going to exit on failure, then automatically
 	 * register this to be cleaned up if we do exit.
 	 */
+
 	if (KSQL_SAFE_EXIT & p->cfg.flags) {
 		/* 
 		 * Only do this once to prevent us from running out of
@@ -1778,6 +1788,44 @@ ksql_stmt_free(struct ksqlstmt *stmt)
 	TAILQ_REMOVE(&stmt->sql->stmt_used, stmt, entries);
 	TAILQ_INSERT_TAIL(&stmt->sql->stmt_free, stmt, entries);
 	return(c);
+}
+
+void
+ksql_role(struct ksql *p, size_t role)
+{
+	size_t	 save = role;
+
+	/* Require roles to be enabled. */
+
+	assert(role < p->cfg.roles.rolesz);
+
+	/*
+	 * The first time we set our role, we're allowed to transition
+	 * into any role we want to.
+	 * This embodies the concept of a "default" initial role.
+	 * This includes transitioning into our own role!
+	 */
+
+	if ( ! p->roleset) {
+		p->role = role;
+		p->roleset = 1;
+		return;
+	} 
+
+	/*
+	 * Now make sure that the requested role "role" descends from
+	 * the current role "p->role".
+	 * To do this, walk up from "role" and see if we find "p->role".
+	 * Stop (assert) when we're at a root.
+	 * This also handle self-assignment.
+	 */
+
+	while (p->role != role) {
+		assert(role != p->cfg.roles.roles[role].parent);
+		role = p->cfg.roles.roles[role].parent;
+	}
+
+	p->role = save;
 }
 
 enum ksqlc
