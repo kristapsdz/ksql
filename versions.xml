@@ -3,6 +3,23 @@
 <articles>
 	<article data-sblg-article="1" data-sblg-tags="version">
 		<header>
+			<h1>0.2.1</h1>
+			<address>Kristaps Dzonsons</address>
+			<time datetime="2018-01-25">2018-01-25</time>
+		</header>
+		<aside>
+			<p>
+				Fix installed manpages.
+				Move the check of stored statements (see <a
+					href="ksql_cfg_defaults.3.html">ksql_cfg_defaults(3)</a>)
+				into the child process of split processes.
+				This ensures that protection occurs outside of the area of influence
+				of the caller.
+			</p>
+		</aside>
+	</article>
+	<article data-sblg-article="1" data-sblg-tags="version">
+		<header>
 			<h1>0.2.0</h1>
 			<address>Kristaps Dzonsons</address>
 			<time datetime="2018-01-21">2018-01-21</time>
