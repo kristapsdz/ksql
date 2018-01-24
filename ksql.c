@@ -176,7 +176,6 @@ enum	ksqlop {
 	KSQLOP_OPEN, /* ksql_open */
 	KSQLOP_ROLE, /* ksql_role */
 	KSQLOP_STMT_ALLOC, /* ksql_stmt_alloc */
-	KSQLOP_STMT_ALLOC_STORED, /* ksql_stmt_alloc */
 	KSQLOP_STMT_FREE, /* ksql_stmt_free */
 	KSQLOP_STMT_RESET, /* ksql_stmt_reset */
 	KSQLOP_STMT_STEP, /* ksql_stmt_step */
@@ -185,37 +184,6 @@ enum	ksqlop {
 	KSQLOP_TRANS_OPEN, /* ksql_trans_xxxx */
 	KSQLOP_UNTRACE, /* ksql_untrace */
 };
-
-#if 0
-static	const char *const ksqlops[] = {
-	"BIND_BLOB", /* KSQLOP_BIND_BLOB */
-	"BIND_DOUBLE", /* KSQLOP_BIND_DOUBLE */
-	"BIND_INT", /* KSQLOP_BIND_INT */
-	"BIND_NULL", /* KSQLOP_BIND_NULL */
-	"BIND_TEXT", /* KSQLOP_BIND_TEXT */
-	"BIND_ZBLOB", /* KSQLOP_BIND_ZBLOB */
-	"CLOSE", /* KSQLOP_CLOSE */
-	"COL_BLOB", /* KSQLOP_COL_BLOB */
-	"COL_BYTES", /* KSQLOP_COL_BYTES */
-	"COL_DOUBLE", /* KSQLOP_COL_DOUBLE */
-	"COL_INT", /* KSQLOP_COL_INT */
-	"COL_ISNULL", /* KSQLOP_COL_ISNULL */
-	"COL_STR", /* KSQLOP_COL_STR */
-	"EXEC", /* KSQL_EXEC */
-	"EXEC_STORED", /* KSQL_EXEC_STORED */
-	"LASTID", /* KSQLOP_LASTID */
-	"OPEN", /* KSQLOP_OPEN */
-	"STMT_ALLOC", /* KSQLOP_STMT_ALLOC */
-	"STMT_ALLOC_STORED", /* KSQLOP_STMT_ALLOC_STORED */
-	"STMT_FREE", /* KSQLOP_STMT_FREE */
-	"STMT_RESET", /* KSQLOP_STMT_RESET */
-	"STMT_STEP", /* KSQLOP_STMT_STEP */
-	"TRACE", /* KSQLOP_TRACE */
-	"TRANS_CLOSE", /* KSQLOP_TRANS_CLOSE */
-	"TRANS_OPEN", /* KSQLOP_TRANS_OPEN */
-	"UNTRACE", /* KSQLOP_UNTRACE */
-};
-#endif
 
 /*
  * Forward declarations.
@@ -462,7 +430,8 @@ ksql_readbuf(struct ksql *p, void *buf, size_t sz, int eofok)
 	int		 rc;
 	const char	*msg;
 
-	assert(sz > 0);
+	if (0 == sz)
+		return(KSQL_OK);
 
 	assert(NULL != p->daemon);
 	assert(-1 != p->daemon->fd);
@@ -588,7 +557,8 @@ ksql_writebuf(struct ksql *p, const void *buf, size_t sz)
 	int		 rc;
 	const char	*msg;
 
-	assert(sz > 0);
+	if (0 == sz)
+		return(KSQL_OK);
 
 	assert(NULL != p->daemon);
 	assert(-1 != p->daemon->fd);
@@ -880,28 +850,20 @@ ksqlsrv_bind(struct ksql *p, enum ksqlop op)
  * TODO: use a string buffer for "sql".
  */
 static enum ksqlc
-ksqlsrv_stmt_alloc(struct ksql *p, int usestore)
+ksqlsrv_stmt_alloc(struct ksql *p)
 {
 	struct ksqlstmt	*ss;
-	char		*sqlp = NULL;
-	const char	*sql = NULL;
+	char		*sql = NULL;
 	size_t		 id;
 	enum ksqlc	 c, cc;
 
-	if ( ! usestore) {
-		if (KSQL_OK != (c = ksql_readstr(p, &sqlp)))
-			return(c);
-		sql = sqlp;
-	}
+	if (KSQL_OK != (c = ksql_readstr(p, &sql)))
+		return(c);
+	assert(NULL != sql);
 
 	if (KSQL_OK != (c = ksql_readsz(p, &id))) {
-		free(sqlp);
+		free(sql);
 		return(c);
-	}
-
-	if (usestore) {
-		assert(id < p->cfg.stmts.stmtsz);
-		sql = p->cfg.stmts.stmts[id];
 	}
 
 	/* 
@@ -910,9 +872,8 @@ ksqlsrv_stmt_alloc(struct ksql *p, int usestore)
 	 * database, so we don't need to manage the pointer.
 	 */
 
-	assert(NULL != sql);
 	cc = ksql_stmt_alloc(p, &ss, sql, id);
-	free(sqlp);
+	free(sql);
 
 	if (KSQL_OK != (c = ksql_writecode(p, cc)))
 		return(c);
@@ -1273,10 +1234,7 @@ ksql_alloc_child(const struct ksqlcfg *cfg,
 			c = ksqlsrv_role(p);
 			break;
 		case (KSQLOP_STMT_ALLOC):
-			c = ksqlsrv_stmt_alloc(p, 0);
-			break;
-		case (KSQLOP_STMT_ALLOC_STORED):
-			c = ksqlsrv_stmt_alloc(p, 1);
+			c = ksqlsrv_stmt_alloc(p);
 			break;
 		case (KSQLOP_STMT_FREE):
 			c = ksqlsrv_stmt_free(p);
@@ -1885,24 +1843,10 @@ ksql_stmt_alloc(struct ksql *p,
 	struct ksqlstmt	*ss, *sp;
 	size_t		 attempt = 0;
 	sqlite3_stmt 	*st;
-	int		 rc, usestore = 0;
+	int		 rc;
 	enum ksqlc	 c, cc;
 
 	*stmt = NULL;
-
-	/* 
-	 * Check if configuration requires stored statements. 
-	 * If so, ignore "sql" and prime it to the stored version.
-	 */
-
-	if (p->cfg.stmts.stmtsz) {
-		if (id >= p->cfg.stmts.stmtsz ||
-		    NULL == p->cfg.stmts.stmts[id])
-			return(ksql_err(p, KSQL_NOSTORE, NULL));
-		sql = p->cfg.stmts.stmts[id];
-		assert(NULL != sql);
-		usestore = 1;
-	}
 
 	/*
 	 * If we don't have any spare statements to draw from, allocate
@@ -1926,19 +1870,13 @@ ksql_stmt_alloc(struct ksql *p,
 	 */
 
 	if (KSQLSRV_ISPARENT(p)) {
-		if ( ! usestore) {
-			c = ksql_writeop(p, KSQLOP_STMT_ALLOC);
-			if (KSQL_OK != c)
-				return(c);
-			if (KSQL_OK != (c = ksql_writestr(p, sql)))
-				return(c);
-		} else {
-			c = ksql_writeop(p, KSQLOP_STMT_ALLOC_STORED);
-			if (KSQL_OK != c)
-				return(c);
-			if (KSQL_OK != c)
-				return(c);
-		}
+		if (NULL == sql)
+			sql = "";
+		c = ksql_writeop(p, KSQLOP_STMT_ALLOC);
+		if (KSQL_OK != c)
+			return(c);
+		if (KSQL_OK != (c = ksql_writestr(p, sql)))
+			return(c);
 		if (KSQL_OK != (c = ksql_writesz(p, id)))
 			return(c);
 		if (KSQL_OK != (c = ksql_readcode(p, &cc)))
@@ -1960,7 +1898,18 @@ ksql_stmt_alloc(struct ksql *p,
 		*stmt = ss;
 		return(cc);
 	}
-	
+
+	/* 
+	 * Check if configuration requires stored statements. 
+	 * If so, ignore "sql" and prime it to the stored version.
+	 */
+
+	if (p->cfg.stmts.stmtsz) {
+		assert(id < p->cfg.stmts.stmtsz);
+		sql = p->cfg.stmts.stmts[id];
+		assert(NULL != sql);
+	}
+
 	if (NULL == p->db) 
 		return(ksql_err(p, KSQL_NOTOPEN, NULL));
 again:
