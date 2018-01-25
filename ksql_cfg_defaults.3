@@ -34,19 +34,18 @@ The
 .Nm
 function initialises
 .Fa cfg
-and configures it with useful defaults:
-the
+with useful defaults: the
 .Dv KSQL_EXIT_ON_ERR
 and
 .Dv KSQL_SAFE_EXIT
 flags are set, which means that any errors in using database routines
 will trigger an exit; and upon exiting in such a state, the database
 will be properly cleaned up.
-Lastly, the
+The
 .Fn ksqlitemsg
 and
-.Fn ksqlitedbmsg ,
-functions are used as error message loggers.
+.Fn ksqlitedbmsg
+functions are set as error message loggers.
 These output to
 .Dv stderr
 the full error message and error code for both regular and database
@@ -94,12 +93,12 @@ and
 signals to be caught and
 .Xr siglongjmp 3
 into an exit handler, which will then close out open databases.
+.It Va struct ksqlroles roles
+Role-based access control configuration.
+Roles map a caller role to stored statements in
+.Fa stmts .
 .It Va struct ksqlstmts stmts
-A structure containing a
-.Fa const char *const *stmts
-and
-.Fa size_t stmtsz ,
-both of which allow stored statements.
+Structure containing stored statement information.
 If stored statements are provided,
 .Xr ksql_stmt_alloc 3
 and
@@ -148,6 +147,64 @@ and
 SQLite error and extended error code, and and the SQLite string error
 message
 .Fa msg .
+.Pp
+The
+.Fa stmts
+variable configures stored statements.
+These provide an extra measure of security for
+.Xr ksql_alloc_child 3
+contexts where the protected child process manages pre-set SQL
+statements that cannot be changed by the caller.
+It contains the following:
+.Bl -tag -width Ds
+.It Fa const char *const *stmts
+An array of SQL statement strings, none of which may be
+.Dv NULL .
+.It Fa size_t stmtsz
+The number of entries in
+.Fa stmts .
+both of which allow stored statements.
+.El
+.Pp
+The
+.Fa roles
+variable configures role-based access control mapping roles to stored
+statements set in
+.Fa stmts .
+Stored statements may be used without roles, but roles require stored
+statements.
+The structure consists of the following:
+.Bl -tag -width Ds
+.It Fa struct ksqlrole *roles
+The role array.
+Each
+.Fa struct ksqlrole
+entry consists of the index of the role's
+.Fa parent
+in
+.Fa roles ,
+which is the same as the current index for root roles,
+and a list of possible
+.Fa stmts .
+The index of a statement in
+.Fa stmts
+corresponds to the
+.Fa id
+passed to
+.Xr ksql_stmt_alloc 3
+and
+.Xr ksql_exec 3 .
+If it zero if the role may not execute the statement,
+non-zero if it may.
+.It Fa size_t rolesz
+The length of
+.Fa roles .
+.It Fa size_t defrole
+The index of the default role set upon
+.Xr ksql_alloc 3
+or
+.Xr ksql_alloc_child 3 .
+.El
 .\" .Sh CONTEXT
 .\" For section 9 functions only.
 .\" .Sh IMPLEMENTATION NOTES
