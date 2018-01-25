@@ -27,7 +27,7 @@
 .In ksql.h
 .Ft void
 .Fo ksql_cfg_defaults
-.Fa "struct ksqlconfig *cfg"
+.Fa "struct ksqlcfg *cfg"
 .Fc
 .Sh DESCRIPTION
 The
@@ -53,7 +53,7 @@ the full error message and error code for both regular and database
 errors.
 .Pp
 The
-.Vt struct ksqlconfig
+.Vt struct ksqlcfg
 structure consists of the following:
 .Bl -tag -width Ds
 .It Va void *arg
