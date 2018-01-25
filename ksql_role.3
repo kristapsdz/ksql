@@ -1,0 +1,103 @@
+.\"	$Id$
+.\"
+.\" Copyright (c) 2018 Kristaps Dzonsons <kristaps@bsd.lv>
+.\"
+.\" Permission to use, copy, modify, and distribute this software for any
+.\" purpose with or without fee is hereby granted, provided that the above
+.\" copyright notice and this permission notice appear in all copies.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+.\" WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+.\" MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+.\" ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+.\" WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+.\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+.\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+.\"
+.Dd $Mdocdate$
+.Dt KSQL_ROLE 3
+.Os
+.Sh NAME
+.Nm ksql_role
+.Nd set role in ksql context
+.Sh LIBRARY
+.Lb ksql
+.Sh SYNOPSIS
+.In stdint.h
+.In ksql.h
+.Ft void
+.Fo ksql_role
+.Fa "struct ksql *sql"
+.Fa "size_t role"
+.Fc
+.Sh DESCRIPTION
+The
+.Nm
+function sets the current role of
+.Fa sql .
+The
+.Fa role
+is the index of a role defined in
+.Fa cfg->roles
+as passed to
+.Xr ksql_alloc 3
+or
+.Xr ksql_alloc_child 3 .
+The role affects all subsequent
+.Xr ksql_exec 3
+and
+.Xr ksql_stmt_alloc 3
+calls.
+.Pp
+If a role has not yet been set, the new role is always set.
+If a role has already been set by a previous call to
+.Fn ksql_role ,
+the new role must have the current role as one of its ancestors.
+Setting the new role to the current role is a noop.
+.Pp
+If the new role is invalid, such as not being defined in
+.Fa cfg->roles
+or not being a descendent of the current role, the program is immediately
+terminated.
+.Pp
+When invoked,
+.Fn ksql_role
+automatically sets
+.Dv KSQL_EXIT_ON_ERR
+on
+.Fa cfg->flags
+and
+.Fa cfg->err
+to
+.Dv NULL ,
+restoring both if/when it returns.
+These guarantee that the function will never return without having properly set
+the new role.
+.\" .Sh CONTEXT
+.\" For section 9 functions only.
+.\" .Sh IMPLEMENTATION NOTES
+.\" Not used in OpenBSD.
+.\" .Sh RETURN VALUES
+.\" For sections 2, 3, and 9 function return values only.
+.\" .Sh ENVIRONMENT
+.\" For sections 1, 6, 7, and 8 only.
+.\" .Sh FILES
+.\" .Sh EXIT STATUS
+.\" For sections 1, 6, and 8 only.
+.\" .Sh EXAMPLES
+.\" .Sh DIAGNOSTICS
+.\" For sections 1, 4, 6, 7, 8, and 9 printf/stderr messages only.
+.\" .Sh ERRORS
+.\" For sections 2, 3, 4, and 9 errno settings only.
+.Sh SEE ALSO
+.Xr ksql_alloc 3 ,
+.Xr ksql_alloc_child 3 ,
+.Xr ksql_exec 3 ,
+.Xr ksql_stmt_alloc 3
+.\" .Sh STANDARDS
+.\" .Sh HISTORY
+.\" .Sh AUTHORS
+.\" .Sh CAVEATS
+.\" .Sh BUGS
+.\" .Sh SECURITY CONSIDERATIONS
+.\" Not used in OpenBSD.

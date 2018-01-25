@@ -3,6 +3,21 @@
 <articles>
 	<article data-sblg-article="1" data-sblg-tags="version">
 		<header>
+			<h1>0.2.2</h1>
+			<address>Kristaps Dzonsons</address>
+			<time datetime="2018-01-26">2018-01-26</time>
+		</header>
+		<aside>
+			<p>
+				Add full role capability.
+				See <a href="ksql_role.3.html">ksql_role(3)</a> and <a
+					href="ksql_cfg_defaults.3.html">ksql_cfg_defaults(3)</a> for
+				details.
+			</p>
+		</aside>
+	</article>
+	<article data-sblg-article="1" data-sblg-tags="version">
+		<header>
 			<h1>0.2.1</h1>
 			<address>Kristaps Dzonsons</address>
 			<time datetime="2018-01-25">2018-01-25</time>
