@@ -43,6 +43,16 @@ main(void)
 	const char	*cp;
 	uint32_t	 val;
 	int64_t		 id;
+	const int	 roles0[] = { 1, 1 };
+	const int	 roles1[] = { 1, 1 };
+	const int	 roles2[] = { 1, 1 };
+	const int	 roles3[] = { 1, 1 };
+	struct ksqlrole	 roles[4] = {
+		{ 0, roles0 }, /* Root. */
+		{ 0, roles1 }, /* Points to root. */
+		{ 1, roles2 }, /* Points to above. */
+		{ 3, roles3 }, /* Default. */
+	};
 
 #if ! HAVE_ARC4RANDOM
 	srandom(getpid());
@@ -54,6 +64,9 @@ main(void)
 	cfg.dberr = ksqlitedbmsg;
 	cfg.stmts.stmts = stmts;
 	cfg.stmts.stmtsz = 2;
+	cfg.roles.roles = roles;
+	cfg.roles.rolesz = 3;
+	cfg.roles.defrole = 3;
 
 	if (NULL == (sql = ksql_alloc_child(&cfg, NULL, NULL)))
 		errx(EXIT_FAILURE, "ksql_alloc_child");
