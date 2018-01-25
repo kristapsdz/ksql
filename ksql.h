@@ -73,7 +73,6 @@ enum ksqlc {
 	KSQL_STMT, /* statement still open at close */
 	KSQL_EXIT, /* closing database on exit */
 	KSQL_SYSTEM, /* system error (fork, socketpair, etc.) */
-	KSQL_NOSTORE, /* stored statement not found */
 	KSQL_EOF, /* internal only */
 };
 

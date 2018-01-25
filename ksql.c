@@ -149,7 +149,6 @@ static	const char * const ksqlcs[] = {
 	"statement(s) open on exit", /* KSQL_STMT */
 	"closing on exit", /* KSQL_EXIT */
 	"system error", /* KSQL_SYSTEM */
-	"stored statement not found", /* KSQL_NOSTORE */
 	NULL, /* KSQL_EOF */
 };
 
