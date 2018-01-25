@@ -80,13 +80,11 @@ enum ksqlc {
 typedef	void (*ksqldbmsg)(void *, int, int, const char *, const char *);
 typedef	void (*ksqlmsg)(void *, enum ksqlc, const char *, const char *);
 
-/* XXX: not yet documented. */
 struct	ksqlrole {
 	size_t		   parent;
 	const int	  *stmts;
 };
 
-/* XXX: not yet documented. */
 struct	ksqlroles {
 	struct ksqlrole	  *roles;
 	size_t		   rolesz;
@@ -100,7 +98,7 @@ struct	ksqlstmts {
 
 struct	ksqlcfg {
 	struct ksqlstmts  stmts;
-	struct ksqlroles  roles; /* XXX: not yet documented */
+	struct ksqlroles  roles;
 	unsigned int	  flags;
 #define	KSQL_EXIT_ON_ERR  0x01
 #define	KSQL_FOREIGN_KEYS 0x02
