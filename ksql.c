@@ -171,7 +171,6 @@ enum	ksqlop {
 	KSQLOP_COL_ISNULL, /* ksql_stmt_isnull */
 	KSQLOP_COL_STR, /* ksql_stmt_str */
 	KSQLOP_EXEC, /* ksql_exec */
-	KSQLOP_EXEC_STORED, /* ksql_exec */
 	KSQLOP_LASTID, /* ksql_lastid */
 	KSQLOP_OPEN, /* ksql_open */
 	KSQLOP_ROLE, /* ksql_role */
@@ -745,32 +744,23 @@ ksqlsrv_open(struct ksql *p)
 }
 
 static enum ksqlc
-ksqlsrv_exec(struct ksql *p, int usestore)
+ksqlsrv_exec(struct ksql *p)
 {
 	enum ksqlc	 c, cc;
-	char		*sqlp = NULL;
 	size_t		 id;
-	const char	*sql = NULL;
+	char		*sql = NULL;
 
-	if ( ! usestore) {
-		if (KSQL_OK != (c = ksql_readstr(p, &sqlp)))
-			return(c);
-		sql = sqlp;
-	}
+	if (KSQL_OK != (c = ksql_readstr(p, &sql)))
+		return(c);
 
 	if (KSQL_OK != (c = ksql_readsz(p, &id))) {
-		free(sqlp);
+		free(sql);
 		return(c);
-	}
-
-	if (usestore) {
-		assert(id < p->cfg.stmts.stmtsz);
-		sql = p->cfg.stmts.stmts[id];
 	}
 
 	assert(NULL != sql);
 	cc = ksql_exec(p, sql, id);
-	free(sqlp);
+	free(sql);
 	return(ksql_writecode(p, cc));
 }
 
@@ -1219,10 +1209,7 @@ ksql_alloc_child(const struct ksqlcfg *cfg,
 			c = ksqlsrv_stmt_str(p);
 			break;
 		case (KSQLOP_EXEC):
-			c = ksqlsrv_exec(p, 0);
-			break;
-		case (KSQLOP_EXEC_STORED):
-			c = ksqlsrv_exec(p, 1);
+			c = ksqlsrv_exec(p);
 			break;
 		case (KSQLOP_LASTID):
 			c = ksqlsrv_lastid(p);
@@ -1547,6 +1534,9 @@ ksql_exec(struct ksql *p, const char *sql, size_t id)
 		sql = p->cfg.stmts.stmts[id];
 		assert(NULL != sql);
 	}
+
+	if (p->cfg.roles.rolesz)
+		assert(p->cfg.roles.roles[p->role].stmts[id]);
 
 	return(ksql_exec_private(p, sql));
 }
@@ -1900,6 +1890,14 @@ ksql_stmt_alloc(struct ksql *p,
 		sql = p->cfg.stmts.stmts[id];
 		assert(NULL != sql);
 	}
+
+	/*
+	 * Do we have roles enabled?
+	 * If so, make sure that we're allowed this operation.
+	 */
+
+	if (p->cfg.roles.rolesz)
+		assert(p->cfg.roles.roles[p->role].stmts[id]);
 
 	if (NULL == p->db) 
 		return(ksql_err(p, KSQL_NOTOPEN, NULL));
