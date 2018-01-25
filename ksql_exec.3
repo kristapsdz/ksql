@@ -1,6 +1,6 @@
 .\"	$Id$
 .\"
-.\" Copyright (c) 2016 Kristaps Dzonsons <kristaps@bsd.lv>
+.\" Copyright (c) 2016, 2018 Kristaps Dzonsons <kristaps@bsd.lv>
 .\"
 .\" Permission to use, copy, modify, and distribute this software for any
 .\" purpose with or without fee is hereby granted, provided that the above
@@ -44,7 +44,7 @@ is used to identify the statement in error messages and should uniquely
 identify the statement. 
 .Pp
 If a non-empty
-.Fa stmts
+.Fa cfg->stmts
 structure documented in
 .Xr ksql_cfg_defaults 3
 is passed to
@@ -56,6 +56,11 @@ the stored statement is looked up by
 and the
 .Fa sql
 value is ignored.
+If
+.Fa id
+is not a valid index of
+.Fa cfg->stmts.stmtsz ,
+the program is immediately terminated.
 .Pp
 This function handles a locked database (specifically,
 .Dv SQLITE_BUSY ,
