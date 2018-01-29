@@ -96,7 +96,9 @@ into an exit handler, which will then close out open databases.
 .It Va struct ksqlroles roles
 Role-based access control configuration.
 Roles map a caller role to stored statements in
-.Fa stmts .
+.Fa stmts
+and set the availability of further role transition with
+.Xr ksql_role 3 .
 .It Va struct ksqlstmts stmts
 Structure containing stored statement information.
 If stored statements are provided,
@@ -179,23 +181,25 @@ The structure consists of the following:
 The role array.
 Each
 .Fa struct ksqlrole
-entry consists of the index of the role's
-.Fa parent
-in
+entry consists of
 .Fa roles ,
-which is the same as the current index for root roles,
-and a list of possible
-.Fa stmts .
+a list of possible roles that may be subsequently set with
+.Xr ksql_role 3
+from the current role; and
+.Fa stmts ,
+a list of all possible statements.
 The index of a statement in
 .Fa stmts
+and the role in
+.Fa roles
 corresponds to the
 .Fa id
 passed to
 .Xr ksql_stmt_alloc 3
 and
 .Xr ksql_exec 3 .
-If it zero if the role may not execute the statement,
-non-zero if it may.
+If it zero if false (the role may not execute the statement, or the role
+may not be entered from the given role), non-zero if it may.
 .It Fa size_t rolesz
 The length of
 .Fa roles .
