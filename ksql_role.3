@@ -49,16 +49,12 @@ and
 .Xr ksql_stmt_alloc 3
 calls.
 .Pp
-If a role has not yet been set, the new role is always set.
-If a role has already been set by a previous call to
-.Fn ksql_role ,
-the new role must have the current role as one of its ancestors.
-Setting the new role to the current role is a noop.
-.Pp
-If the new role is invalid, such as not being defined in
-.Fa cfg->roles
-or not being a descendent of the current role, the program is immediately
-terminated.
+The new role must be allowed by having a non-zero value in the
+.Fa roles
+array within the current role's
+.Ft struct ksqlrole
+object.
+Otherwise, the program is immediately terminated.
 .Pp
 When invoked,
 .Fn ksql_role
