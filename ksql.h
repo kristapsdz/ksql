@@ -39,7 +39,7 @@
 /*
  * Build version.
  */
-#define	KSQL_VBUILD	0
+#define	KSQL_VBUILD	2
 
 /*
  * Version string of major.minor.build (as a literal string).
@@ -80,8 +80,8 @@ typedef	void (*ksqldbmsg)(void *, int, int, const char *, const char *);
 typedef	void (*ksqlmsg)(void *, enum ksqlc, const char *, const char *);
 
 struct	ksqlrole {
-	size_t		   parent;
-	const int	  *stmts;
+	const int	  *roles; /* roles we can access */
+	const int	  *stmts; /* statements we can call */
 };
 
 struct	ksqlroles {

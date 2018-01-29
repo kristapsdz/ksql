@@ -116,7 +116,6 @@ struct	ksqld {
 struct	ksql {
 	struct ksqlcfg	 	  cfg;
 	size_t			  role; /* current role */
-	int			  roleset; /* role has been set? */
 	sqlite3			 *db;
 	char			 *dbfile; /* fname of db */
 	struct ksqlstmtq	  stmt_used; /* used list */
@@ -1499,6 +1498,14 @@ ksql_exec_private(struct ksql *p, const char *sql)
 	return(c);
 }
 
+static int 
+xauth(void *arg, int type, const char *arg3, const char *arg4, const char *name, const char *view)
+{
+
+	warnx("%d: %s, %s\n", type, NULL == arg3 ? "(null)" : arg3, NULL == arg4 ? "(null)" : arg4);
+	return(SQLITE_OK);
+}
+
 /*
  * The logic here is almost identical to ksql_stmt_alloc().
  * Note that we sometimes call ksql_exec() from within the child process
@@ -1587,6 +1594,8 @@ again:
 		goto again;
 	} else if (SQLITE_OK != rc) 
 		return(ksql_dberr(p));
+
+	sqlite3_set_authorizer(p->db, xauth, NULL);
 
 	/* Handle required foreign key invocation. */
 
@@ -1747,7 +1756,6 @@ ksql_stmt_free(struct ksqlstmt *stmt)
 void
 ksql_role(struct ksql *p, size_t role)
 {
-	size_t	 	 save = role;
 	enum ksqlc	 c, cc;
 	unsigned int	 flags;
 	ksqlmsg		 errmsg;
@@ -1788,19 +1796,6 @@ ksql_role(struct ksql *p, size_t role)
 	assert(role < p->cfg.roles.rolesz);
 
 	/*
-	 * The first time we set our role, we're allowed to transition
-	 * into any role we want to.
-	 * This embodies the concept of a "default" initial role.
-	 * This includes transitioning into our own role!
-	 */
-
-	if ( ! p->roleset) {
-		p->role = role;
-		p->roleset = 1;
-		return;
-	} 
-
-	/*
 	 * Now make sure that the requested role "role" descends from
 	 * the current role "p->role".
 	 * To do this, walk up from "role" and see if we find "p->role".
@@ -1808,12 +1803,8 @@ ksql_role(struct ksql *p, size_t role)
 	 * This also handle self-assignment.
 	 */
 
-	while (p->role != role) {
-		assert(role != p->cfg.roles.roles[role].parent);
-		role = p->cfg.roles.roles[role].parent;
-	}
-
-	p->role = save;
+	assert(p->cfg.roles.roles[p->role].roles[role]);
+	p->role = role;
 }
 
 enum ksqlc
