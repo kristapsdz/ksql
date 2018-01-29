@@ -9,7 +9,7 @@
 		</header>
 		<aside>
 			<p>
-				Add full role capability.
+				Add full RBAC capability.
 				See <a href="ksql_role.3.html">ksql_role(3)</a> and <a
 					href="ksql_cfg_defaults.3.html">ksql_cfg_defaults(3)</a> for
 				details.
