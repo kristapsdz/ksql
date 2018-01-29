@@ -34,6 +34,7 @@
 						<li><a href="ksql_free.3.html">ksql_free(3)</a></li>
 						<li><a href="ksql_lastid.3.html">ksql_lastid(3)</a></li>
 						<li><a href="ksql_open.3.html">ksql_open(3)</a></li>
+						<li><a href="ksql_role.3.html">ksql_role(3)</a></li>
 						<li><a href="ksql_stmt_alloc.3.html">ksql_stmt_alloc(3)</a></li>
 						<li><a href="ksql_stmt_double.3.html">ksql_stmt_double(3)</a></li>
 						<li><a href="ksql_stmt_free.3.html">ksql_stmt_free(3)</a></li>
@@ -64,10 +65,10 @@
 						See <a href="ksql.3.html">ksql(3)</a> and friends for details.
 					</p>
 					<p>
-						It also provides extra security when run in an optional <a href="https://learnbchs.org/ksql.html">split-process</a> model.
-						This protects your database from being exposed to a compromised process.
-						It also allows your calling code to sandbox itself (e.g., by using
-						<a href="https://man.openbsd.org/pledge.2">pledge(2)</a>) without needing to accommodate for SQLite's file-system access requirements.
+						It also has some handy security features: a <a
+							href="https://learnbchs.org/ksql.html">split-process</a> model protecting the database
+						from your application, full RBAC capabilities on the statement level, and immutable stored
+						statements to prevent the application from crafting its own SQL.
 					</p>
 					<p>
 						The library runs on <span itemprop="operatingSystem">UNIX</span> systems: <span
