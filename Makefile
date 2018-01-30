@@ -76,11 +76,11 @@ libksql.a: ksql.o compats.o
 
 compats.o ksql.o test: config.h
 
-www: $(HTMLS) ksql.tar.gz
+www: $(HTMLS) ksql.tar.gz atom.xml
 
 installwww: www
 	mkdir -p $(WWWDIR)/snapshots
-	$(INSTALL_DATA) $(HTMLS) $(BUILT) $(WWWDIR)
+	$(INSTALL_DATA) atom.xml $(HTMLS) $(BUILT) $(WWWDIR)
 	$(INSTALL_DATA) ksql.tar.gz $(WWWDIR)/snapshots
 	$(INSTALL_DATA) ksql.tar.gz $(WWWDIR)/snapshots/ksql-$(VERSION).tar.gz
 
@@ -102,7 +102,7 @@ install: libksql.a
 	$(INSTALL_DATA) $(MANS) $(DESTDIR)$(MANDIR)/man3
 
 clean:
-	rm -f libksql.a compats.o ksql.o $(HTMLS) ksql.tar.gz test test.db
+	rm -f libksql.a compats.o ksql.o $(HTMLS) ksql.tar.gz test test.db atom.xml
 
 distclean: clean
 	rm -f Makefile.configure config.h config.log
@@ -111,6 +111,9 @@ distclean: clean
 	mandoc -Ostyle=mandoc.css -Thtml $< >$@
 
 index.html: versions.xml
+
+atom.xml: versions.xml
+	sblg -a versions.xml >$@
 
 .xml.html:
 	sblg -s date -t $< -o $@ versions.xml
