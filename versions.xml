@@ -5,11 +5,12 @@
 		<header>
 			<h1>0.2.2</h1>
 			<address>Kristaps Dzonsons</address>
-			<time datetime="2018-01-26">2018-01-26</time>
+			<time datetime="2018-01-30">2018-01-30</time>
 		</header>
 		<aside>
 			<p>
 				Add full RBAC capability.
+				(Still somewhat experimental&#8230;)
 				See <a href="ksql_role.3.html">ksql_role(3)</a> and <a
 					href="ksql_cfg_defaults.3.html">ksql_cfg_defaults(3)</a> for
 				details.
