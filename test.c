@@ -43,15 +43,19 @@ main(void)
 	const char	*cp;
 	uint32_t	 val;
 	int64_t		 id;
-	const int	 roles0[] = { 1, 1 };
-	const int	 roles1[] = { 1, 1 };
-	const int	 roles2[] = { 1, 1 };
-	const int	 roles3[] = { 1, 1 };
+	const int	 stmts0[] = { 1, 1 };
+	const int	 stmts1[] = { 1, 1 };
+	const int	 stmts2[] = { 1, 1 };
+	const int	 stmts3[] = { 0, 0 };
+	const int	 roles0[] = { 1, 0, 0, 0 }; /* To noone. */
+	const int	 roles1[] = { 1, 1, 0, 0 }; /* Only to root. */
+	const int	 roles2[] = { 0, 1, 1, 0 }; /* Only to above. */
+	const int	 roles3[] = { 1, 1, 1, 1 }; /* To all. */
 	struct ksqlrole	 roles[4] = {
-		{ 0, roles0 }, /* Root. */
-		{ 0, roles1 }, /* Points to root. */
-		{ 1, roles2 }, /* Points to above. */
-		{ 3, roles3 }, /* Default. */
+		{ roles0, stmts0 },
+		{ roles1, stmts1 },
+		{ roles2, stmts2 },
+		{ roles3, stmts3 },
 	};
 
 #if ! HAVE_ARC4RANDOM
@@ -65,11 +69,14 @@ main(void)
 	cfg.stmts.stmts = stmts;
 	cfg.stmts.stmtsz = 2;
 	cfg.roles.roles = roles;
-	cfg.roles.rolesz = 3;
+	cfg.roles.rolesz = 4;
 	cfg.roles.defrole = 3;
 
 	if (NULL == (sql = ksql_alloc_child(&cfg, NULL, NULL)))
 		errx(EXIT_FAILURE, "ksql_alloc_child");
+
+	ksql_role(sql, 2);
+	ksql_role(sql, 1);
 
 #if HAVE_PLEDGE
 	if (-1 == pledge("stdio", NULL))
