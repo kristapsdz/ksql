@@ -81,4 +81,5 @@ header					{ margin-bottom: 1.5em;
 footer					{ padding: 1em; }
 #nav					{ padding: 1ex 2%; }
 article					{ padding: 0 2%; }
+.menu span				{ display: none; }
 }
