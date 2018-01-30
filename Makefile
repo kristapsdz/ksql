@@ -113,7 +113,7 @@ distclean: clean
 index.html: versions.xml
 
 atom.xml: versions.xml
-	sblg -a versions.xml >$@
+	sblg -s date -a versions.xml >$@
 
 .xml.html:
 	sblg -s date -t $< -o $@ versions.xml
