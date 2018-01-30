@@ -1498,6 +1498,7 @@ ksql_exec_private(struct ksql *p, const char *sql)
 	return(c);
 }
 
+#if 0
 static int 
 xauth(void *arg, int type, const char *arg3, const char *arg4, const char *name, const char *view)
 {
@@ -1505,6 +1506,7 @@ xauth(void *arg, int type, const char *arg3, const char *arg4, const char *name,
 	warnx("%d: %s, %s\n", type, NULL == arg3 ? "(null)" : arg3, NULL == arg4 ? "(null)" : arg4);
 	return(SQLITE_OK);
 }
+#endif
 
 /*
  * The logic here is almost identical to ksql_stmt_alloc().
@@ -1595,7 +1597,7 @@ again:
 	} else if (SQLITE_OK != rc) 
 		return(ksql_dberr(p));
 
-	sqlite3_set_authorizer(p->db, xauth, NULL);
+	/*sqlite3_set_authorizer(p->db, xauth, NULL);*/
 
 	/* Handle required foreign key invocation. */
 
