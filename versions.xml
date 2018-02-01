@@ -3,6 +3,23 @@
 <articles>
 	<article data-sblg-article="1" data-sblg-tags="version">
 		<header>
+			<h1>0.2.4</h1>
+			<address>Kristaps Dzonsons</address>
+			<time datetime="2018-02-01">2018-02-01</time>
+		</header>
+		<aside>
+			<p>
+				Back out debugging code accidentally left in release version.
+				No change to functionality except an error message on <code>stderr</code>.
+			</p>
+			<p>
+				Also use <code>abort</code> instead of <code>assert</code> for
+				run-time failures in roles or statements.
+			</p>
+		</aside>
+	</article>
+	<article data-sblg-article="1" data-sblg-tags="version">
+		<header>
 			<h1>0.2.3</h1>
 			<address>Kristaps Dzonsons</address>
 			<time datetime="2018-01-31">2018-01-31</time>
