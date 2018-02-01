@@ -1537,14 +1537,21 @@ ksql_exec(struct ksql *p, const char *sql, size_t id)
 	 * If so, ignore "sql" and prime it to the stored version.
 	 */
 
-	if (p->cfg.stmts.stmtsz) {
-		assert(id < p->cfg.stmts.stmtsz);
-		sql = p->cfg.stmts.stmts[id];
-		assert(NULL != sql);
-	}
+	if (p->cfg.stmts.stmtsz)
+		if (id >= p->cfg.stmts.stmtsz ||
+		    NULL == (sql = p->cfg.stmts.stmts[id]))
+			abort();
+
+	/*
+	 * If the configuration requires roles AND has stored
+	 * statements, then make sure the stored statement is allowed
+	 * within our role.
+	 */
 
 	if (p->cfg.roles.rolesz)
-		assert(p->cfg.roles.roles[p->role].stmts[id]);
+		if (id >= p->cfg.stmts.stmtsz ||
+	            ! p->cfg.roles.roles[p->role].stmts[id])
+			abort();
 
 	return(ksql_exec_private(p, sql));
 }
@@ -1793,19 +1800,16 @@ ksql_role(struct ksql *p, size_t role)
 		return;
 	}
 
-	/* Require roles to be enabled. */
-
-	assert(role < p->cfg.roles.rolesz);
-
-	/*
-	 * Now make sure that the requested role "role" descends from
-	 * the current role "p->role".
-	 * To do this, walk up from "role" and see if we find "p->role".
-	 * Stop (assert) when we're at a root.
-	 * This also handle self-assignment.
+	/* 
+	 * Require roles to be enabled.
+	 * Now make sure that the requested role "role" may be accessed
+	 * from the current role "p->role".
 	 */
 
-	assert(p->cfg.roles.roles[p->role].roles[role]);
+	if (role >= p->cfg.roles.rolesz ||
+	    ! p->cfg.roles.roles[p->role].roles[role])
+		abort();
+
 	p->role = role;
 }
 
@@ -1877,11 +1881,10 @@ ksql_stmt_alloc(struct ksql *p,
 	 * If so, ignore "sql" and prime it to the stored version.
 	 */
 
-	if (p->cfg.stmts.stmtsz) {
-		assert(id < p->cfg.stmts.stmtsz);
-		sql = p->cfg.stmts.stmts[id];
-		assert(NULL != sql);
-	}
+	if (p->cfg.stmts.stmtsz)
+		if (id >= p->cfg.stmts.stmtsz ||
+		    NULL == (sql = p->cfg.stmts.stmts[id]))
+			abort();
 
 	/*
 	 * Do we have roles enabled?
@@ -1889,7 +1892,9 @@ ksql_stmt_alloc(struct ksql *p,
 	 */
 
 	if (p->cfg.roles.rolesz)
-		assert(p->cfg.roles.roles[p->role].stmts[id]);
+		if (id >= p->cfg.stmts.stmtsz ||
+	            ! p->cfg.roles.roles[p->role].stmts[id])
+			abort();
 
 	if (NULL == p->db) 
 		return(ksql_err(p, KSQL_NOTOPEN, NULL));
