@@ -1593,18 +1593,29 @@ again:
 	rc = sqlite3_open(dbfile, &p->db);
 
 	if (SQLITE_BUSY == rc) {
+		sqlite3_close(p->db);
+		p->db = NULL;
 		ksql_sleep(attempt++);
 		goto again;
 	} else if (SQLITE_LOCKED == rc) {
+		sqlite3_close(p->db);
+		p->db = NULL;
 		ksql_sleep(attempt++);
 		goto again;
 	} else if (SQLITE_PROTOCOL == rc) {
+		sqlite3_close(p->db);
+		p->db = NULL;
 		ksql_sleep(attempt++);
 		goto again;
-	} else if (SQLITE_OK != rc) 
-		return(ksql_dberr(p));
+	} else if (SQLITE_OK != rc) {
+		if (NULL == p->db)
+			return(ksql_err(p, KSQL_DB, NULL));
+		if (NULL != p->db)
+			return(ksql_dberr(p));
+	}
 
-	/*sqlite3_set_authorizer(p->db, xauth, NULL);*/
+	/* TODO... */
+	/* sqlite3_set_authorizer(p->db, xauth, NULL); */
 
 	/* Handle required foreign key invocation. */
 
