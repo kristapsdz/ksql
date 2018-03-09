@@ -204,8 +204,7 @@ ksql_atexit(void)
 	atexits = 0;
 	dojmp = 0;
 
-	while ( ! TAILQ_EMPTY(&ksqls)) {
-		p = TAILQ_FIRST(&ksqls);
+	while (NULL != (p = TAILQ_FIRST(&ksqls))) {
 		/*
 		 * We're already exiting, so don't let any of the
 		 * interior functions bail us out again.
@@ -1358,8 +1357,7 @@ ksql_close_inner(struct ksql *p, int onexit)
 	 * (The child will report its errors.)
 	 */
 
-	while ( ! TAILQ_EMPTY(&p->stmt_used)) {
-		stmt = TAILQ_FIRST(&p->stmt_used);
+	while (NULL != (stmt = TAILQ_FIRST(&p->stmt_used))) {
 		TAILQ_REMOVE(&p->stmt_used, stmt, entries);
 		if (NULL != stmt->stmt) {
 			sqlite3_finalize(stmt->stmt);
@@ -1456,8 +1454,7 @@ ksql_free_inner(struct ksql *p, int onexit)
 	} else
 		er = ksql_close_inner(p, onexit);
 
-	while ( ! TAILQ_EMPTY(&p->stmt_free)) {
-		stmt = TAILQ_FIRST(&p->stmt_free);
+	while (NULL != (stmt = TAILQ_FIRST(&p->stmt_free))) {
 		TAILQ_REMOVE(&p->stmt_free, stmt, entries);
 		assert(NULL == stmt->stmt);
 		free(stmt);
