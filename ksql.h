@@ -39,7 +39,7 @@
 /*
  * Build version.
  */
-#define	KSQL_VBUILD	3
+#define	KSQL_VBUILD	5
 
 /*
  * Version string of major.minor.build (as a literal string).

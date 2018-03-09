@@ -3,6 +3,27 @@
 <articles>
 	<article data-sblg-article="1" data-sblg-tags="version">
 		<header>
+			<h1>0.2.5</h1>
+			<address>Kristaps Dzonsons</address>
+			<time datetime="2018-03-09">2018-03-09</time>
+		</header>
+		<aside>
+			<p>
+				Fix a memory leak in <a href="ksql_open.3.html">ksql_open(3)</a> if
+				the system spins on a failed opening of the database.
+				Also fix a possible error when closing the database fails, then a
+				log message follows that might re-invoke the closed database.
+			</p>
+			<p>
+				The fixes in this release were implemented or suggested by Ingo
+				Schwarze (<q>schwarze@</q>) in an audit generously funded by CAPEM
+				Solutions, Inc.  
+				Thank you so much!
+			</p>
+		</aside>
+	</article>
+	<article data-sblg-article="1" data-sblg-tags="version">
+		<header>
 			<h1>0.2.4</h1>
 			<address>Kristaps Dzonsons</address>
 			<time datetime="2018-02-01">2018-02-01</time>
