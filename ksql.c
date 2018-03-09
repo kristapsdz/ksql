@@ -1394,7 +1394,12 @@ ksql_close_inner(struct ksql *p, int onexit)
 	/* Now try to close the database itself. */
 
 	if (NULL != p->db && SQLITE_OK != sqlite3_close(p->db)) {
-		ksql_dberr_noexit(p);
+		/* 
+		 * It's unclear whether p->db points to any useful
+		 * memory in the case of error.
+		 * Assume that it doesn't.
+		 */
+		ksql_err_noexit(p, KSQL_DB, NULL);
 		haserrs = KSQL_DB;
 	}
 
