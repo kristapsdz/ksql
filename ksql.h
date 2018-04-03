@@ -74,6 +74,7 @@ enum ksqlc {
 	KSQL_EXIT, /* closing database on exit */
 	KSQL_SYSTEM, /* system error (fork, socketpair, etc.) */
 	KSQL_EOF, /* internal only */
+	KSQL_SECURITY, /* security breach */
 };
 
 typedef	void (*ksqldbmsg)(void *, int, int, const char *, const char *);
