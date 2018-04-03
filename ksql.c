@@ -1574,8 +1574,13 @@ ksql_exec(struct ksql *p, const char *sql, size_t id)
 
 	if (p->cfg.stmts.stmtsz)
 		if (id >= p->cfg.stmts.stmtsz ||
-		    NULL == (sql = p->cfg.stmts.stmts[id]))
+		    NULL == (sql = p->cfg.stmts.stmts[id])) {
+			ksqlitevmsg(p, KSQL_SECURITY, 
+				"statement %zu exceeds maximum "
+				"statement %zu", id, 
+				p->cfg.stmts.stmtsz);
 			abort();
+		}
 
 	/*
 	 * If the configuration requires roles AND has stored
@@ -1864,9 +1869,18 @@ ksql_role(struct ksql *p, size_t role)
 	 * from the current role "p->role".
 	 */
 
-	if (role >= p->cfg.roles.rolesz ||
-	    ! p->cfg.roles.roles[p->role].roles[role])
+	if (role >= p->cfg.roles.rolesz) {
+		ksqlitevmsg(p, KSQL_SECURITY, 
+			"role %zu exceeds maximum role %zu", 
+			role, p->cfg.roles.rolesz);
 		abort();
+	} else if ( ! p->cfg.roles.roles[p->role].roles[role]) {
+		ksqlitevmsg(p, KSQL_SECURITY, 
+			"role %zu (of %zu roles) disallowed "
+			"transition to %zu",
+			p->role, p->cfg.roles.rolesz, role);
+		abort();
+	}
 
 	p->role = role;
 }
