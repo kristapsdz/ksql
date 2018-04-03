@@ -1953,20 +1953,43 @@ ksql_stmt_alloc(struct ksql *p,
 	 * If so, ignore "sql" and prime it to the stored version.
 	 */
 
-	if (p->cfg.stmts.stmtsz)
-		if (id >= p->cfg.stmts.stmtsz ||
-		    NULL == (sql = p->cfg.stmts.stmts[id]))
+	if (p->cfg.stmts.stmtsz) {
+		if (id >= p->cfg.stmts.stmtsz) {
+			ksqlitevmsg(p, KSQL_SECURITY, 
+				"statement %zu exceeds maximum "
+				"statement %zu", id, 
+				p->cfg.stmts.stmtsz);
 			abort();
+		} else if (NULL == (sql = p->cfg.stmts.stmts[id])) {
+			ksqlitevmsg(p, KSQL_SECURITY, 
+				"undefined statement %zu "
+				"(of %zu statements)",
+				id, p->cfg.stmts.stmtsz);
+			abort();
+		}
+	}
 
 	/*
 	 * Do we have roles enabled?
 	 * If so, make sure that we're allowed this operation.
 	 */
 
-	if (p->cfg.roles.rolesz)
-		if (id >= p->cfg.stmts.stmtsz ||
-	            ! p->cfg.roles.roles[p->role].stmts[id])
+	if (p->cfg.roles.rolesz) {
+		if (id >= p->cfg.stmts.stmtsz) {
+			ksqlitevmsg(p, KSQL_SECURITY, 
+				"statement %zu exceeds maximum "
+				"statement %zu", id, 
+				p->cfg.stmts.stmtsz);
 			abort();
+		} else if ( ! p->cfg.roles.roles[p->role].stmts[id]) {
+			ksqlitevmsg(p, KSQL_SECURITY, 
+				"role %zu (of %zu roles) disallowed "
+				"statement %zu (of %zu statements)",
+				p->role, p->cfg.roles.rolesz, id,
+				p->cfg.stmts.stmtsz);
+			abort();
+		}
+	}
 
 	if (NULL == p->db) 
 		return(ksql_err(p, KSQL_NOTOPEN, NULL));
