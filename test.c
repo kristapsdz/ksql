@@ -16,6 +16,8 @@
  */
 #include "config.h"
 
+#include <sys/types.h>
+
 #if HAVE_ERR
 # include <err.h>
 #endif
