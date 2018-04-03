@@ -149,6 +149,7 @@ static	const char * const ksqlcs[] = {
 	"closing on exit", /* KSQL_EXIT */
 	"system error", /* KSQL_SYSTEM */
 	NULL, /* KSQL_EOF */
+	"security violation", /* KSQL_SECURITY */
 };
 
 /*
@@ -314,6 +315,37 @@ ksqlitemsg(void *arg, enum ksqlc code,
 		warnx("%s: %s (error code %d)", file, msg, code);
 	else
 		warnx("%s (error code %d)", msg, code);
+}
+
+/*
+ * Like ksqlitemsg() but accepting variable arguments.
+ * Internally this will invoke vasprintf(), which may error out due to
+ * memory failure.
+ * This function ignores the condition and simply doesn't print the
+ * error message, so be mindful in how you call this function!
+ */
+static void
+ksqlitevmsg(const struct ksql *p, 
+	enum ksqlc code, const char *fmt, ...)
+{
+	va_list	 ap;
+	char	*msg;
+	int	 rc;
+
+	va_start(ap, fmt);
+	rc = vasprintf(&msg, fmt, ap);
+	va_end(ap);
+
+	if (rc < 0 && NULL != p->dbfile)
+		warnx("%s: error code %d", p->dbfile, code);
+	else if (rc < 0)
+		warnx("error code %d", code);
+	else if (NULL != p->dbfile)
+		warnx("%s: %s (error code %d)", p->dbfile, msg, code);
+	else
+		warnx("%s (error code %d)", msg, code);
+
+	free(msg);
 }
 
 /*
@@ -1551,10 +1583,22 @@ ksql_exec(struct ksql *p, const char *sql, size_t id)
 	 * within our role.
 	 */
 
-	if (p->cfg.roles.rolesz)
-		if (id >= p->cfg.stmts.stmtsz ||
-	            ! p->cfg.roles.roles[p->role].stmts[id])
+	if (p->cfg.roles.rolesz) {
+		if (id >= p->cfg.stmts.stmtsz) { 
+			ksqlitevmsg(p, KSQL_SECURITY, 
+				"statement %zu exceeds maximum "
+				"statement %zu", id, 
+				p->cfg.stmts.stmtsz);
 			abort();
+		} else if ( ! p->cfg.roles.roles[p->role].stmts[id]) {
+			ksqlitevmsg(p, KSQL_SECURITY, 
+				"role %zu (of %zu roles) disallowed "
+				"statement %zu (of %zu statements)",
+				p->role, p->cfg.roles.rolesz, id,
+				p->cfg.stmts.stmtsz);
+			abort();
+		}
+	}
 
 	return(ksql_exec_private(p, sql));
 }
@@ -2390,4 +2434,5 @@ ksql_untrace(struct ksql *p)
 	else
 		sqlite3_config(SQLITE_CONFIG_LOG, NULL, NULL);
 }
+
 
