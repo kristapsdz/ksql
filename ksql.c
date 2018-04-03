@@ -1161,6 +1161,7 @@ ksql_alloc_child(const struct ksqlcfg *cfg,
 	}
 	p->daemon = calloc(1, sizeof(struct ksqld));
 	if (NULL == p->daemon) {
+		close(comm);
 		ksql_free(p);
 		exit(EXIT_FAILURE);
 	}
