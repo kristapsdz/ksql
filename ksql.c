@@ -90,7 +90,7 @@ TAILQ_HEAD(kcacheq, kcache);
  */
 struct	ksqlstmt {
 	sqlite3_stmt		*stmt; /* statement */
-	size_t			 id; /* its identifier */
+	size_t			 id; /* its ID (init'd as SIZE_MAX) */
 	struct kcacheq		 cache; /* pointer cache */
 	struct ksql		*sql; /* corresponding db */
 	void			*ptr; /* daemon mode pointer */
