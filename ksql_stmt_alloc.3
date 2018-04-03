@@ -68,8 +68,11 @@ value is ignored.
 If
 .Fa id
 is not a valid index of
-.Fa cfg->stmts.stmtsz ,
-the program is immediately terminated.
+.Fa cfg->stmts.stmtsz 
+or if the current role does not permit access to the statement,
+an error message is emitted on
+.Dv stderr
+and the program is immediately terminated.
 .Pp
 The
 .Nm

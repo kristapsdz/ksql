@@ -55,7 +55,9 @@ The new role must be allowed by having a non-zero value in the
 array within the current role's
 .Ft struct ksqlrole
 object.
-Otherwise, the program is immediately terminated.
+Otherwise, the situation is logged to
+.Dv stderr
+and the program is immediately terminated.
 .Pp
 When invoked,
 .Fn ksql_role
