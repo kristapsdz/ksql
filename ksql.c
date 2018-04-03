@@ -1398,6 +1398,7 @@ ksql_close_inner(struct ksql *p, int onexit)
 		}
 		snprintf(buf, sizeof(buf),
 			"statement %zu still open", stmt->id);
+		stmt->id = SIZE_MAX;
 		haserrs = KSQL_STMT;
 		ksql_err_noexit(p, KSQL_STMT, buf);
 		TAILQ_INSERT_TAIL(&p->stmt_free, stmt, entries);
@@ -1820,6 +1821,7 @@ ksql_stmt_free(struct ksqlstmt *stmt)
 		stmt->stmt = NULL;
 	}
 
+	stmt->id = SIZE_MAX;
 	TAILQ_REMOVE(&stmt->sql->stmt_used, stmt, entries);
 	TAILQ_INSERT_TAIL(&stmt->sql->stmt_free, stmt, entries);
 	return(c);
@@ -1908,6 +1910,7 @@ ksql_stmt_alloc(struct ksql *p,
 		if (NULL == ss)
 			return(ksql_err(p, KSQL_MEM, NULL));
 		TAILQ_INIT(&ss->cache);
+		ss->id = SIZE_MAX;
 		TAILQ_INSERT_TAIL(&p->stmt_free, ss, entries);
 	} 
 
