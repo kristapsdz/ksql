@@ -3,15 +3,47 @@
 <articles>
 	<article data-sblg-article="1" data-sblg-tags="version">
 		<header>
-			<h1>0.2.6</h1>
+			<h1>0.3.0</h1>
 			<address>Kristaps Dzonsons</address>
 			<time datetime="2018-03-21">ongoing</time>
 		</header>
 		<aside>
 			<p>
-				Merge documentation patches by <a
+				Minor release bump: this is because I've added a new field to
+				<code>struct ksqlrole</code> to specify whether a role is allowed to
+				run <a href="ksql_open.3.html">ksql_open(3)</a>.
+				This plugs a hole of arbitrary roles being able to close out the
+				database, then open another one.
+			</p>
+			<p>
+				Merge documentation and error-path patches by <a
 					href="https://github.com/cornett">cornett</a>&#8212;thank
 				you!
+			</p>
+			<p>
+				The remaining fixes in this release were implemented or suggested by Ingo
+				Schwarze (<q>schwarze@</q>) in an audit generously funded by CAPEM
+				Solutions, Inc.  Thank you so much!
+			</p>
+			<p>
+				Mention correct headers (erring on the side of caution) in documentation.
+			</p>
+			<p>
+				Have security issues (e.g., transition to a disallowed role) result
+				in a log message directly to <code>stderr</code> and terminating the application.
+				Earlier, there was no log message.
+			</p>
+			<p>
+				Fix up the <a href="ksql_lastid.3.html">ksql_lastid(3)</a> function
+				and manpage to handle boundary conditions and include an example.
+			</p>
+			<p>
+				<strong>API change</strong>: earlier, <a
+					href="ksql_open.3.html">ksql_open(3)</a> would close out
+				existing databases before opening.  Now it errors out, requiring the
+				caller to close the database manually.
+				Also, add a field to <code>struct ksqlrole</code> that inhibits a
+				role's ability to open a database.
 			</p>
 		</aside>
 	</article>
