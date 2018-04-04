@@ -186,7 +186,11 @@ entry consists of
 .Fa roles ,
 a list of possible roles that may be subsequently set with
 .Xr ksql_role 3
-from the current role; and
+from the current role; 
+.Fa flags ,
+a bit-field consisting only of
+.Dv KSQLROLE_OPEN ,
+which indicates that the role may open databases; and
 .Fa stmts ,
 a list of all possible statements.
 The index of a statement in
