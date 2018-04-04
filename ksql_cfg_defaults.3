@@ -186,7 +186,7 @@ entry consists of
 .Fa roles ,
 a list of possible roles that may be subsequently set with
 .Xr ksql_role 3
-from the current role; 
+from the current role;
 .Fa flags ,
 a bit-field consisting only of
 .Dv KSQLROLE_OPEN ,
@@ -225,7 +225,28 @@ or
 .\" .Sh FILES
 .\" .Sh EXIT STATUS
 .\" For sections 1, 6, and 8 only.
-.\" .Sh EXAMPLES
+.Sh EXAMPLES
+In this simple example, a default configuration is extended with stored
+statements, then the connection is started in split-process mode and the
+caller sandboxes.
+(The sandboxing is only available on
+.Ox . )
+For brevity, no error checking is performed.
+.Bd -literal
+struct ksqlcfg cfg;
+struct ksql *sql;
+const char *const stmts[] = {
+  "INSERT INTO test (foo) VALUES (?)",
+  "SELECT foo FROM test"
+};
+
+ksql_cfg_defaults(&cfg);
+cfg.stmts.stmts = stmts;
+cfg.stmts.stmtsz = 2;
+
+sql = ksql_alloc_child(&cfg, NULL, NULL);
+pledge("stdio", NULL);
+.Ed
 .\" .Sh DIAGNOSTICS
 .\" For sections 1, 4, 6, 7, 8, and 9 printf/stderr messages only.
 .\" .Sh ERRORS
