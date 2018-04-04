@@ -143,6 +143,7 @@ static	const char * const ksqlcs[] = {
 	NULL, /* KSQL_CONSTRAINT */
 	"memory exhausted", /* KSQL_MEM */
 	"database not open", /* KSQL_NOTOPEN */
+	"database already open", /* KSQL_ALREADYOPEN */
 	"database error", /* KSQL_DB */
 	"transaction already open or not yet open", /* KSQL_TRANS */
 	"statement(s) open on exit", /* KSQL_STMT */
@@ -1630,15 +1631,11 @@ ksql_open(struct ksql *p, const char *dbfile)
 
 	/* 
 	 * Now in-process mode. 
-	 * First close out any existing open database. 
-	 * (Note that, since we're in the child, this won't incur any
-	 * additional communication with the parent, so we're safe to
-	 * run it entirely locally).
+	 * If we already have a database, don't re-open.
 	 */
 
 	if (NULL != p->db) 
-		if (KSQL_OK != (c = ksql_close(p)))
-			return(c);
+		return(KSQL_ALREADYOPEN);
 
 	if (NULL == (p->dbfile = strdup(dbfile)))
 		return(ksql_err(p, KSQL_MEM, NULL));

@@ -68,6 +68,7 @@ enum ksqlc {
 	KSQL_CONSTRAINT, /* step constraint */
 	KSQL_MEM, /* failure to prepare */
 	KSQL_NOTOPEN, /* DB not open */
+	KSLQ_ALREADYOPEN, /* DB already open */
 	KSQL_DB, /* errors in DB */
 	KSQL_TRANS, /* transaction recursive or not started */
 	KSQL_STMT, /* statement still open at close */
