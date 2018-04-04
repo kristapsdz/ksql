@@ -2249,9 +2249,15 @@ enum ksqlc
 ksql_lastid(struct ksql *p, int64_t *id)
 {
 	enum ksqlc	c, cc;
+	int64_t		buf;
+
+	/* 
+	 * If we're not given an identifier pointer (why!?), then fake
+	 * one up so we can return consistent error messages.
+	 */
 
 	if (NULL == id)
-		return(KSQL_OK);
+		id = &buf;
 
 	if (KSQLSRV_ISPARENT(p)) {
 		if (KSQL_OK != (c = ksql_writeop(p, KSQLOP_LASTID))) 
