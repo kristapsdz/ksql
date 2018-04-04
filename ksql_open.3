@@ -43,6 +43,10 @@ If the handle was allocated with
 a successful open will be followed by a
 .Xr ksql_exec 3
 call to enable foreign keys.
+If the current role does not permit opening databases, an error message
+is emitted on
+.Dv stderr
+and the program is immediately terminated.
 .Pp
 The
 .Nm
