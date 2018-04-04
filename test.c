@@ -54,10 +54,10 @@ main(void)
 	const int	 roles2[] = { 0, 1, 1, 0 }; /* Only to above. */
 	const int	 roles3[] = { 1, 1, 1, 1 }; /* To all. */
 	struct ksqlrole	 roles[4] = {
-		{ roles0, stmts0 },
-		{ roles1, stmts1 },
-		{ roles2, stmts2 },
-		{ roles3, stmts3 },
+		{ roles0, stmts0, 0 },
+		{ roles1, stmts1, 0 },
+		{ roles2, stmts2, 0 },
+		{ roles3, stmts3, 1 },
 	};
 
 #if ! HAVE_ARC4RANDOM
@@ -77,9 +77,6 @@ main(void)
 	if (NULL == (sql = ksql_alloc_child(&cfg, NULL, NULL)))
 		errx(EXIT_FAILURE, "ksql_alloc_child");
 
-	ksql_role(sql, 2);
-	ksql_role(sql, 1);
-
 #if HAVE_PLEDGE
 	if (-1 == pledge("stdio", NULL))
 		err(EXIT_FAILURE, "pledge");
@@ -87,6 +84,9 @@ main(void)
 
 	if (KSQL_OK != ksql_open(sql, "test.db"))
 		errx(EXIT_FAILURE, "ksql_open");
+
+	ksql_role(sql, 2);
+	ksql_role(sql, 1);
 
 	if (KSQL_OK != ksql_trans_open(sql, 0))
 		errx(EXIT_FAILURE, "ksql_trans_open");
