@@ -1,6 +1,6 @@
 .\"	$Id$
 .\"
-.\" Copyright (c) 2016 Kristaps Dzonsons <kristaps@bsd.lv>
+.\" Copyright (c) 2016, 2018 Kristaps Dzonsons <kristaps@bsd.lv>
 .\"
 .\" Permission to use, copy, modify, and distribute this software for any
 .\" purpose with or without fee is hereby granted, provided that the above
@@ -36,13 +36,8 @@ The
 .Nm
 function opens a database connection to
 .Fa dbfile
-(which must exists) on a handle allocated with
+(which must exist) on a handle allocated with
 .Xr ksql_alloc 3 .
-If
-.Fa sql
-already has a database connection open, it will close it first
-with
-.Xr ksql_close 3 .
 If the handle was allocated with
 .Dv KSQL_FOREIGN_KEYS ,
 a successful open will be followed by a
@@ -72,7 +67,9 @@ if memory allocation failed,
 .Dv KSQL_DB
 if the
 .Xr sqlite3_open 3
-function failed, otherwise
+function failed,
+.Dv KSQL_ALREADYOPEN
+if a database connection is already open, otherwise
 .Dv KSQL_OK
 on success.
 .\" For sections 2, 3, and 9 function return values only.
@@ -81,7 +78,25 @@ on success.
 .\" .Sh FILES
 .\" .Sh EXIT STATUS
 .\" For sections 1, 6, and 8 only.
-.\" .Sh EXAMPLES
+.Sh EXAMPLES
+The following opens a database
+.Pa test.db
+in split-process mode.
+For illustrative purpose, it uses
+.Xr pledge 2
+to sandbox the running process.
+(This security feature is only available on
+.Ox . )
+For brevity, this does not report an errors.
+.Bd -literal
+struct ksql *sql;
+
+sql = ksql_alloc_child(NULL, NULL, NULL);
+pledge("stdio", NULL);
+ksql_open(sql, "test.db");
+/* Do stuff  */
+ksql_close(sql);
+.Ed
 .\" .Sh DIAGNOSTICS
 .\" For sections 1, 4, 6, 7, 8, and 9 printf/stderr messages only.
 .\" .Sh ERRORS
