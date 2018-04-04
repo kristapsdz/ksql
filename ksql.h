@@ -68,7 +68,7 @@ enum ksqlc {
 	KSQL_CONSTRAINT, /* step constraint */
 	KSQL_MEM, /* failure to prepare */
 	KSQL_NOTOPEN, /* DB not open */
-	KSLQ_ALREADYOPEN, /* DB already open */
+	KSQL_ALREADYOPEN, /* DB already open */
 	KSQL_DB, /* errors in DB */
 	KSQL_TRANS, /* transaction recursive or not started */
 	KSQL_STMT, /* statement still open at close */
@@ -84,6 +84,8 @@ typedef	void (*ksqlmsg)(void *, enum ksqlc, const char *, const char *);
 struct	ksqlrole {
 	const int	  *roles; /* roles we can access */
 	const int	  *stmts; /* statements we can call */
+	unsigned int	   flags; /* additional role properties */
+#define	KSQLROLE_OPEN	   0x01 /* open new databases */
 };
 
 struct	ksqlroles {
