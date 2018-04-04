@@ -1629,6 +1629,17 @@ ksql_open(struct ksql *p, const char *dbfile)
 		return(cc);
 	}
 
+	/* Role check! */
+
+	if (p->cfg.roles.rolesz &&
+	    ! (KSQLROLE_OPEN & p->cfg.roles.roles[p->role].flags)) {
+		ksqlitevmsg(p, KSQL_SECURITY, 
+			"role %zu (of %zu roles) "
+			"cannot open databases",
+			p->role, p->cfg.roles.rolesz);
+		abort();
+	}
+
 	/* 
 	 * Now in-process mode. 
 	 * If we already have a database, don't re-open.
