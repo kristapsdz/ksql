@@ -21,6 +21,7 @@
 .Nm ksql_bind_blob ,
 .Nm ksql_bind_double ,
 .Nm ksql_bind_int ,
+.Nm ksql_bind_null ,
 .Nm ksql_bind_str ,
 .Nm ksql_bind_zblob
 .Nd bind values to a prepared statement
@@ -50,6 +51,11 @@
 .Fa "int64_t val"
 .Fc
 .Ft "enum ksqlc"
+.Fo ksql_bind_null
+.Fa "struct ksqlstmt *stmt"
+.Fa "size_t col"
+.Fc
+.Ft "enum ksqlc"
 .Fo ksql_bind_str
 .Fa "struct ksqlstmt *stmt"
 .Fa "size_t col"
@@ -67,6 +73,7 @@ The
 .Nm ksql_bind_bytes ,
 .Nm ksql_bind_double ,
 .Nm ksql_bind_int ,
+.Nm ksql_bind_null ,
 .Nm ksql_bind_str ,
 and
 .Nm ksql_bind_zblob
