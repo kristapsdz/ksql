@@ -34,58 +34,45 @@
 .Ft "enum ksqlc"
 .Fo ksql_bind_blob
 .Fa "struct ksqlstmt *stmt"
-.Fa "size_t col"
+.Fa "size_t column"
 .Fa "const void *val"
 .Fa "size_t valsz"
 .Fc
 .Ft "enum ksqlc"
 .Fo ksql_bind_double
 .Fa "struct ksqlstmt *stmt"
-.Fa "size_t col"
+.Fa "size_t column"
 .Fa "double val"
 .Fc
 .Ft "enum ksqlc"
 .Fo ksql_bind_int
 .Fa "struct ksqlstmt *stmt"
-.Fa "size_t col"
+.Fa "size_t column"
 .Fa "int64_t val"
 .Fc
 .Ft "enum ksqlc"
 .Fo ksql_bind_null
 .Fa "struct ksqlstmt *stmt"
-.Fa "size_t col"
+.Fa "size_t column"
 .Fc
 .Ft "enum ksqlc"
 .Fo ksql_bind_str
 .Fa "struct ksqlstmt *stmt"
-.Fa "size_t col"
+.Fa "size_t column"
 .Fa "const char *val"
 .Fc
 .Ft "enum ksqlc"
 .Fo ksql_bind_zblob
 .Fa "struct ksqlstmt *stmt"
-.Fa "size_t col"
+.Fa "size_t column"
 .Fa "size_t valsz"
 .Fc
 .Sh DESCRIPTION
-The
-.Nm ksql_bind_blob ,
-.Nm ksql_bind_bytes ,
-.Nm ksql_bind_double ,
-.Nm ksql_bind_int ,
-.Nm ksql_bind_null ,
-.Nm ksql_bind_str ,
-and
-.Nm ksql_bind_zblob
-functions bind data to a statement prepared with
+These functions bind data to a statement prepared with
 .Xr ksql_stmt_alloc 3 .
-They all accept the relevant column to bind, which starts at zero.
-.Pp
-.Em Note :
-in SQLite, binding occurs starting at column one.
-In these functions, for consistency with
-.Xr ksql_stmt_double 3
-and friends, it starts at zero.
+They all accept the relevant
+.Fa column
+to bind, which starts at zero.
 .Pp
 In
 .Nm ksql_bind_blob
@@ -119,7 +106,11 @@ on success.
 .\" .Sh STANDARDS
 .\" .Sh HISTORY
 .\" .Sh AUTHORS
-.\" .Sh CAVEATS
+.Sh CAVEATS
+In SQLite, binding occurs starting at column one.
+In these functions, for consistency with
+.Xr ksql_stmt_double 3
+and friends, it starts at zero.
 .\" .Sh BUGS
 .\" .Sh SECURITY CONSIDERATIONS
 .\" Not used in OpenBSD.
