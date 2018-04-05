@@ -84,8 +84,7 @@ In
 .Nm ksql_bind_blob
 and
 .Nm ksql_bind_str ,
-the contents not copied, so the memory used must be valid until
-.Xr ksql_stmt_step 3 .
+the contents are internally copied.
 .\" .Sh CONTEXT
 .\" For section 9 functions only.
 .\" .Sh IMPLEMENTATION NOTES

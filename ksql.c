@@ -2071,9 +2071,7 @@ ksql_bind_blob(struct ksqlstmt *stmt,
 		return(ksql_writebound(stmt, 
 			KSQLOP_BIND_BLOB, pos, val, valsz));
 	rc = sqlite3_bind_blob
-		(stmt->stmt, pos + 1, val, valsz, 
-		 KSQLSRV_ISCHILD(stmt->sql) ? 
-		 SQLITE_TRANSIENT : SQLITE_STATIC);
+		(stmt->stmt, pos + 1, val, valsz, SQLITE_TRANSIENT);
 	if (SQLITE_OK == rc)
 		return(KSQL_OK);
 	return(ksql_dberr(stmt->sql));
@@ -2089,9 +2087,7 @@ ksql_bind_str(struct ksqlstmt *stmt, size_t pos, const char *val)
 			KSQLOP_BIND_TEXT, pos, val, 0));
 
 	rc = sqlite3_bind_text
-		(stmt->stmt, pos + 1, val, -1, 
-		 KSQLSRV_ISCHILD(stmt->sql) ? 
-		 SQLITE_TRANSIENT : SQLITE_STATIC);
+		(stmt->stmt, pos + 1, val, -1, SQLITE_TRANSIENT);
 	if (SQLITE_OK == rc)
 		return(KSQL_OK);
 	return(ksql_dberr(stmt->sql));
