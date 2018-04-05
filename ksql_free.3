@@ -45,6 +45,12 @@ If the handle was allocated with
 the handle is removed from the queue of handles that would be freed on
 exit (so it is not double-freed).
 .Pp
+If
+.Fa sql
+is
+.Dv NULL ,
+no action occurs.
+.Pp
 This function is invoked from the
 .Xr atexit 3
 handler if

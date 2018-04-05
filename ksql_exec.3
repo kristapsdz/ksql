@@ -42,7 +42,7 @@ on an open database connection
 The
 .Fa id
 is used to identify the statement in error messages and should uniquely
-identify the statement. 
+identify the statement.
 .Pp
 If a non-empty
 .Fa cfg->stmts
@@ -55,7 +55,7 @@ or
 the stored statement is looked up by
 .Fa id
 and the
-.Fa sql
+.Fa stmt
 value is ignored.
 If
 .Fa id
@@ -74,7 +74,7 @@ by sleeping for a random interval, then trying again infinitely.
 .\" .Sh IMPLEMENTATION NOTES
 .\" Not used in OpenBSD.
 .Sh RETURN VALUES
-These functions return
+This function returns
 .Dv KSQL_NOTOPEN
 if the database connection has not been opeend,
 .Dv KSQL_DB

@@ -46,14 +46,21 @@ and friends.
 .\" .Sh IMPLEMENTATION NOTES
 .\" Not used in OpenBSD.
 .Sh RETURN VALUES
-Returns
+This function returns
 .Dv KSQL_OK
 on success or another error on failure.
-.Em Note :
-this does not return the code of
-.Xr sqlite3_finalize 3 ,
-which itself returns the code of the last step and not the failure of
-the resource de-allocation.
+Currently, it can only fail due to communication failures in
+split-process mode.
+.Pp
+The return value of the underlying
+.Xr sqlite3_reset 3
+is ignored because resource deallocation cannot fail, and because
+.Xr sqlite3_reset 3
+instead returns the return value of the most recent step of the
+execution of the statement.
+Even if the last step of the execution failed,
+.Fn ksql_stmt_reset
+will usually succeed.
 .\" For sections 2, 3, and 9 function return values only.
 .\" .Sh ENVIRONMENT
 .\" For sections 1, 6, 7, and 8 only.
