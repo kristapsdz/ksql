@@ -1669,10 +1669,20 @@ again:
 		ksql_sleep(attempt++);
 		goto again;
 	} else if (SQLITE_OK != rc) {
-		if (NULL == p->db)
-			return(ksql_err(p, KSQL_DB, NULL));
-		if (NULL != p->db)
-			return(ksql_dberr(p));
+		if (NULL != p->db) {
+			/*
+			 * This is basically ksql_dberr, but we want to
+			 * make sure that the database is closed.
+			 */
+			ksql_dberr_noexit(p);
+			sqlite3_close(p->db);
+			p->db = NULL;
+			if (KSQL_EXIT_ON_ERR & p->cfg.flags)
+				exit(EXIT_FAILURE);
+			return(KSQL_DB);
+		}
+		return(ksql_err(p, SQLITE_NOMEM == rc ?
+			KSQL_MEM : KSQL_DB, NULL));
 	}
 
 	/* TODO... */
