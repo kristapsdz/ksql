@@ -320,33 +320,25 @@ ksqlitemsg(void *arg, enum ksqlc code,
 
 /*
  * Like ksqlitemsg() but accepting variable arguments.
- * Internally this will invoke vasprintf(), which may error out due to
- * memory failure.
- * This function ignores the condition and simply doesn't print the
- * error message, so be mindful in how you call this function!
+ * Internally this will invoke vsnprintf(), which will truncate the
+ * message to 1023 Bytes.
+ * MAKE SURE YOUR MESSAGES ARE BOUND IN SIZE.
  */
 static void
 ksqlitevmsg(const struct ksql *p, 
 	enum ksqlc code, const char *fmt, ...)
 {
 	va_list	 ap;
-	char	*msg;
-	int	 rc;
+	char	 msg[1024];
 
 	va_start(ap, fmt);
-	rc = vasprintf(&msg, fmt, ap);
+	vsnprintf(msg, sizeof(msg), fmt, ap);
 	va_end(ap);
 
-	if (rc < 0 && NULL != p->dbfile)
-		warnx("%s: error code %d", p->dbfile, code);
-	else if (rc < 0)
-		warnx("error code %d", code);
-	else if (NULL != p->dbfile)
+	if (NULL != p->dbfile)
 		warnx("%s: %s (error code %d)", p->dbfile, msg, code);
 	else
 		warnx("%s (error code %d)", msg, code);
-
-	free(msg);
 }
 
 /*
