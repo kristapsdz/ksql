@@ -20,7 +20,7 @@
 .Sh NAME
 .Nm ksql_stmt_cstep ,
 .Nm ksql_stmt_step
-.Nd get the next result of a statement
+.Nd get the next row of results from a statement
 .Sh LIBRARY
 .Lb ksql
 .Sh SYNOPSIS
@@ -37,16 +37,20 @@
 .Fc
 .Sh DESCRIPTION
 The
-.Nm ksql_stmt_step
+.Fn ksql_stmt_step
 and
-.Nm ksql_stmt_cstep
-functions query the next results of a statement opened with
-.Xr ksql_stmt_open 3 .
+.Fn ksql_stmt_cstep
+functions query the next row of results from a statement prepared with
+.Xr ksql_stmt_alloc 3 .
 The two functions differ in that
-.Nm ksql_stmt_cstep
-allows constraint conditions not to return as errors.
+.Fn ksql_stmt_step
+fails when a constraint is violated, while
+.Fn ksql_stmt_cstep
+returns
+.Dv KSQL_CONSTRAINT
+instead.
 .Pp
-These functions handles a locked database (specifically,
+These functions handle a locked database (specifically,
 .Dv SQLITE_BUSY ,
 .Dv SQLITE_LOCKED ,
 or
@@ -59,18 +63,19 @@ by sleeping for a random interval, then trying again infinitely.
 .Sh RETURN VALUES
 These functions return
 .Dv KSQL_NOTOPEN
-if the database connection has not been opeend,
+if the database connection has not been opened,
 .Dv KSQL_ROW
 if a row is available for examining,
 .Dv KSQL_DONE
 if no more rows are available,
 .Dv KSQL_CONSTRAINT
 if
-.Nm ksql_stmt_cstep
+.Fn ksql_stmt_cstep
 was used and a constraint was violated,
 .Dv KSQL_DB
-on database errors (including constraints, if those are not explicitly
-alllowed), or
+on database errors, including constraint violations in
+.Fn ksql_stmt_step ,
+or
 .Dv KSQL_OK
 otherwise.
 .\" For sections 2, 3, and 9 function return values only.
