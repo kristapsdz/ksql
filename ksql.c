@@ -1574,15 +1574,20 @@ ksql_exec(struct ksql *p, const char *sql, size_t id)
 	 * If so, ignore "sql" and prime it to the stored version.
 	 */
 
-	if (p->cfg.stmts.stmtsz)
-		if (id >= p->cfg.stmts.stmtsz ||
-		    NULL == (sql = p->cfg.stmts.stmts[id])) {
+	if (p->cfg.stmts.stmtsz) {
+		if (id >= p->cfg.stmts.stmtsz) {
 			ksqlitevmsg(p, KSQL_SECURITY, 
-				"statement %zu exceeds maximum "
-				"statement %zu", id, 
+				"statement %zu exceeds configured "
+				"maximum of %zu", id, 
 				p->cfg.stmts.stmtsz);
 			abort();
+		} else if (NULL == (sql = p->cfg.stmts.stmts[id])) {
+			ksqlitevmsg(p, KSQL_SECURITY, 
+				"statement %zu (of %zu statements) "
+				"is null", id, p->cfg.stmts.stmtsz);
+			abort();
 		}
+	}
 
 	/*
 	 * If the configuration requires roles AND has stored
@@ -1593,8 +1598,8 @@ ksql_exec(struct ksql *p, const char *sql, size_t id)
 	if (p->cfg.roles.rolesz) {
 		if (id >= p->cfg.stmts.stmtsz) { 
 			ksqlitevmsg(p, KSQL_SECURITY, 
-				"statement %zu exceeds maximum "
-				"statement %zu", id, 
+				"statement %zu exceeds configured "
+				"maximum of %zu", id, 
 				p->cfg.stmts.stmtsz);
 			abort();
 		} else if ( ! p->cfg.roles.roles[p->role].stmts[id]) {
@@ -1891,8 +1896,8 @@ ksql_role(struct ksql *p, size_t role)
 
 	if (role >= p->cfg.roles.rolesz) {
 		ksqlitevmsg(p, KSQL_SECURITY, 
-			"role %zu exceeds maximum role %zu", 
-			role, p->cfg.roles.rolesz);
+			"role %zu exceeds configured maximum of "
+			"%zu", role, p->cfg.roles.rolesz);
 		abort();
 	} else if ( ! p->cfg.roles.roles[p->role].roles[role]) {
 		ksqlitevmsg(p, KSQL_SECURITY, 
@@ -1977,8 +1982,8 @@ ksql_stmt_alloc(struct ksql *p,
 	if (p->cfg.stmts.stmtsz) {
 		if (id >= p->cfg.stmts.stmtsz) {
 			ksqlitevmsg(p, KSQL_SECURITY, 
-				"statement %zu exceeds maximum "
-				"statement %zu", id, 
+				"statement %zu exceeds configured "
+				"maximum of %zu", id, 
 				p->cfg.stmts.stmtsz);
 			abort();
 		} else if (NULL == (sql = p->cfg.stmts.stmts[id])) {
@@ -1998,8 +2003,8 @@ ksql_stmt_alloc(struct ksql *p,
 	if (p->cfg.roles.rolesz) {
 		if (id >= p->cfg.stmts.stmtsz) {
 			ksqlitevmsg(p, KSQL_SECURITY, 
-				"statement %zu exceeds maximum "
-				"statement %zu", id, 
+				"statement %zu exceeds configured "
+				"maximum of %zu", id, 
 				p->cfg.stmts.stmtsz);
 			abort();
 		} else if ( ! p->cfg.roles.roles[p->role].stmts[id]) {
