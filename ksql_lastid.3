@@ -41,7 +41,8 @@ If
 .Fa id
 is
 .Dv NULL ,
-then this does nothing, but will still return a valid error code.
+then this does nothing, except that the return value still indicates
+whether the database is open.
 If no row was successfully inserted since the database
 .Fa sql
 was opened,
