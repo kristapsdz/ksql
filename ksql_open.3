@@ -61,19 +61,17 @@ by sleeping for a random interval, then trying again infinitely.
 .\" .Sh IMPLEMENTATION NOTES
 .\" Not used in OpenBSD.
 .Sh RETURN VALUES
-This returns the exit code of
-.Xr ksql_close 3
-if it failed, the exit code of
-.Xr ksql_exec 3
-if it failed to enable foreign keys,
+This returns
+.Dv KSQL_ALREADYOPEN
+if a database connection is already open,
 .Dv KSQL_MEM
 if memory allocation failed,
 .Dv KSQL_DB
 if the
 .Xr sqlite3_open 3
-function failed,
-.Dv KSQL_ALREADYOPEN
-if a database connection is already open, otherwise
+function failed, the exit code of
+.Xr ksql_exec 3
+if it failed to enable foreign keys, or otherwise
 .Dv KSQL_OK
 on success.
 .\" For sections 2, 3, and 9 function return values only.
@@ -88,7 +86,7 @@ The following opens a database
 in split-process mode.
 For illustrative purpose, it uses
 .Xr pledge 2
-to sandbox the running process.
+to sandbox the controlling parent process.
 (This security feature is only available on
 .Ox . )
 For brevity, this does not report an errors.
