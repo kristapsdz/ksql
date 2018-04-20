@@ -150,6 +150,29 @@ and
 .Xr ksql_stmt_cstep 3 ,
 and
 .Xr ksql_stmt_alloc 3 .
+.Ss Pledge Promises
+The
+.Nm ksql
+library is built to operate in security-sensitive environments, including
+.Xr pledge 2
+on
+.Ox .
+.Pp
+If running in single-process mode (i.e., with
+.Xr ksql_alloc 3 ) ,
+the
+.Va stdio rpath cpath wpath flock fattr
+pledges are required for all functions.
+.Pp
+If in split-process mode (with
+.Xr ksql_alloc_child 3 ) ,
+then
+.Va stdio rpath cpath wpath flock proc fattr
+is required for
+.Xr ksql_alloc_child 3 ,
+and only
+.Va stdio
+otherwise.
 .\" .Sh CONTEXT
 .\" For section 9 functions only.
 .\" .Sh IMPLEMENTATION NOTES
