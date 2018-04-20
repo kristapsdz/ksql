@@ -1173,10 +1173,17 @@ ksql_alloc_child(const struct ksqlcfg *cfg,
 	}
 #endif
 
-	/* Wipe all of our parent context *except* stderr. */
+	/*
+	 * We don't want the child to be connected to stdout or stdin
+	 * for security reasons.
+	 * Make sure they're not connected to a useful channel.
+	 */
 
-	close(STDIN_FILENO);
-	close(STDOUT_FILENO);
+	if (-1 == dup2(STDERR_FILENO, STDIN_FILENO) ||
+	    -1 == dup2(STDERR_FILENO, STDOUT_FILENO)) {
+		close(comm);
+		exit(EXIT_FAILURE);
+	}
 
 	/* Fully allocate the ksql context. */
 
