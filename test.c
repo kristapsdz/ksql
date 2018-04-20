@@ -74,6 +74,11 @@ main(void)
 	cfg.roles.rolesz = 4;
 	cfg.roles.defrole = 3;
 
+#if HAVE_PLEDGE
+	if (-1 == pledge("stdio rpath cpath wpath flock fattr proc", NULL))
+		err(EXIT_FAILURE, "pledge");
+#endif
+
 	if (NULL == (sql = ksql_alloc_child(&cfg, NULL, NULL)))
 		errx(EXIT_FAILURE, "ksql_alloc_child");
 
@@ -93,7 +98,7 @@ main(void)
 
 	if (KSQL_OK != ksql_stmt_alloc(sql, &stmt, NULL, 0))
 		errx(EXIT_FAILURE, "ksql_stmt_alloc");
-	for (i = 0; i < 10; i++) {
+	for (i = 0; i < 1000; i++) {
 #if HAVE_ARC4RANDOM
 		val = arc4random();
 #else
@@ -110,8 +115,6 @@ main(void)
 				errx(EXIT_FAILURE, "ksql_bind_str");
 			if (KSQL_OK != ksql_bind_double(stmt, 3, val * 0.5))
 				errx(EXIT_FAILURE, "ksql_bind_double");
-			printf("Bind (%zu): %zu bytes -> %s\n", i,
-				strlen(buf) + 1, buf);
 		} else {
 			if (KSQL_OK != ksql_bind_null(stmt, 0))
 				errx(EXIT_FAILURE, "ksql_bind_null");
@@ -122,14 +125,11 @@ main(void)
 				errx(EXIT_FAILURE, "ksql_bind_str");
 			if (KSQL_OK != ksql_bind_null(stmt, 3))
 				errx(EXIT_FAILURE, "ksql_bind_null");
-			printf("Bind (%zu): (null) %zu bytes -> %s\n", i,
-				strlen(buf) + 1, buf);
 		}
 		if (KSQL_DONE != ksql_stmt_step(stmt))
 			errx(EXIT_FAILURE, "ksql_stmt_step");
 		if (KSQL_OK != ksql_lastid(sql, &id))
 			errx(EXIT_FAILURE, "ksql_lastid");
-		printf("Result (%zu): %" PRId64 "\n", i, id);
 		if (KSQL_OK != ksql_stmt_reset(stmt))
 			errx(EXIT_FAILURE, "ksql_stmt_reset");
 	}
@@ -138,6 +138,47 @@ main(void)
 
 	if (KSQL_OK != ksql_trans_commit(sql, 0))
 		errx(EXIT_FAILURE, "ksql_trans_open");
+
+	if (KSQL_OK != ksql_stmt_alloc(sql, &stmt, NULL, 0))
+		errx(EXIT_FAILURE, "ksql_stmt_alloc");
+
+	for (i = 0; i < 1000; i++) {
+#if HAVE_ARC4RANDOM
+		val = arc4random();
+#else
+		val = random();
+#endif
+		snprintf(buf, sizeof(buf), "%" PRIu32, val);
+		if (0 == (val % 2)) {
+			if (KSQL_OK != ksql_bind_int(stmt, 0, val))
+				errx(EXIT_FAILURE, "ksql_bind_int");
+			if (KSQL_OK != ksql_bind_str(stmt, 1, buf))
+				errx(EXIT_FAILURE, "ksql_bind_str");
+			if (KSQL_OK != ksql_bind_blob
+			    (stmt, 2, buf, strlen(buf) + 1))
+				errx(EXIT_FAILURE, "ksql_bind_str");
+			if (KSQL_OK != ksql_bind_double(stmt, 3, val * 0.5))
+				errx(EXIT_FAILURE, "ksql_bind_double");
+		} else {
+			if (KSQL_OK != ksql_bind_null(stmt, 0))
+				errx(EXIT_FAILURE, "ksql_bind_null");
+			if (KSQL_OK != ksql_bind_null(stmt, 1))
+				errx(EXIT_FAILURE, "ksql_bind_null");
+			if (KSQL_OK != ksql_bind_zblob
+		   	    (stmt, 2, strlen(buf) + 1))
+				errx(EXIT_FAILURE, "ksql_bind_str");
+			if (KSQL_OK != ksql_bind_null(stmt, 3))
+				errx(EXIT_FAILURE, "ksql_bind_null");
+		}
+		if (KSQL_DONE != ksql_stmt_step(stmt))
+			errx(EXIT_FAILURE, "ksql_stmt_step");
+		if (KSQL_OK != ksql_lastid(sql, &id))
+			errx(EXIT_FAILURE, "ksql_lastid");
+		if (KSQL_OK != ksql_stmt_reset(stmt))
+			errx(EXIT_FAILURE, "ksql_stmt_reset");
+	}
+	if (KSQL_OK != ksql_stmt_free(stmt))
+		errx(EXIT_FAILURE, "ksql_stmt_free");
 
 	if (KSQL_OK != ksql_stmt_alloc(sql, &stmt, NULL, 1))
 		errx(EXIT_FAILURE, "ksql_stmt_alloc");
