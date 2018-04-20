@@ -1492,7 +1492,6 @@ ksql_free_inner(struct ksql *p, int onexit)
 		TAILQ_REMOVE(&p->stmt_free, stmt, entries);
 		assert(NULL == stmt->stmt);
 		free(stmt);
-		stmt = NULL;
 	}
 
 	if (KSQL_SAFE_EXIT & p->cfg.flags) {
