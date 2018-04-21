@@ -912,7 +912,6 @@ ksqlsrv_stmt_step(struct ksql *p)
 	return(ksql_writecode(p, ksql_step_inner(ss, val)));
 }
 
-
 static enum ksqlc
 ksqlsrv_stmt_reset(struct ksql *p)
 {
@@ -2478,14 +2477,30 @@ ksql_stmt_str(struct ksqlstmt *stmt, size_t col)
 	return(c->s);
 }
 
-void
+enum ksqlc
 ksql_trace(struct ksql *p)
 {
+	enum ksqlc	 c, cc;
+	int		 rc;
 
-	if (KSQLSRV_ISPARENT(p))
+	if (KSQLSRV_ISPARENT(p)) {
 		ksql_writeop(p, KSQLOP_TRACE);
+		if (KSQL_OK != (c = ksql_readcode(p, &cc)))
+			return(c);
+		return(cc);
+	} 
+
+	rc = sqlite3_config
+		(SQLITE_CONFIG_LOG, ksql_tracemsg, p);
+
+	if (SQLITE_MISUSE == rc)
+		cc = KSQL_ALREADYOPEN;
+	else if (SQLITE_OK != rc)
+		cc = KSQL_SYSTEM;
 	else
-		sqlite3_config(SQLITE_CONFIG_LOG, ksql_tracemsg, p);
+		cc = KSQL_OK;
+
+	return(ksql_writecode(p, cc));
 }
 
 void
