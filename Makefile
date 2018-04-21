@@ -1,4 +1,4 @@
-.SUFFIXES: .3 .3.html .html .xml
+.SUFFIXES: .3 .3.html .html .dot .svg .3.xml
 
 include Makefile.configure
 
@@ -9,8 +9,7 @@ VBUILD	!= grep 'define	KSQL_VBUILD' ksql.h | cut -f3
 VERSION	:= $(VMAJOR).$(VMINOR).$(VBUILD)
 BUILT	 = index.css \
 	   mandoc.css
-HTMLS	 = index.html \
-	   ksql.3.html \
+HTMLS	 = ksql.3.html \
 	   ksql_alloc.3.html \
 	   ksql_alloc_child.3.html \
 	   ksql_bind_double.3.html \
@@ -30,6 +29,26 @@ HTMLS	 = index.html \
 	   ksql_trans_commit.3.html \
 	   ksql_trans_open.3.html \
 	   ksql_untrace.3.html
+XMLS	 = ksql.3.xml \
+	   ksql_alloc.3.xml \
+	   ksql_alloc_child.3.xml \
+	   ksql_bind_double.3.xml \
+	   ksql_cfg_defaults.3.xml \
+	   ksql_close.3.xml \
+	   ksql_exec.3.xml \
+	   ksql_free.3.xml \
+	   ksql_lastid.3.xml \
+	   ksql_open.3.xml \
+	   ksql_role.3.xml \
+	   ksql_stmt_alloc.3.xml \
+	   ksql_stmt_double.3.xml \
+	   ksql_stmt_free.3.xml \
+	   ksql_stmt_reset.3.xml \
+	   ksql_stmt_step.3.xml \
+	   ksql_trace.3.xml \
+	   ksql_trans_commit.3.xml \
+	   ksql_trans_open.3.xml \
+	   ksql_untrace.3.xml
 MANS	 = ksql.3 \
 	   ksql_alloc.3 \
 	   ksql_alloc_child.3 \
@@ -76,11 +95,11 @@ libksql.a: ksql.o compats.o
 
 compats.o ksql.o test: config.h
 
-www: $(HTMLS) ksql.tar.gz atom.xml
+www: $(HTMLS) index.html ksql.svg ksql.tar.gz atom.xml
 
 installwww: www
 	mkdir -p $(WWWDIR)/snapshots
-	$(INSTALL_DATA) atom.xml $(HTMLS) $(BUILT) $(WWWDIR)
+	$(INSTALL_DATA) atom.xml $(HTMLS) index.html $(BUILT) $(WWWDIR)
 	$(INSTALL_DATA) ksql.tar.gz $(WWWDIR)/snapshots
 	$(INSTALL_DATA) ksql.tar.gz $(WWWDIR)/snapshots/ksql-$(VERSION).tar.gz
 
@@ -102,18 +121,26 @@ install: libksql.a
 	$(INSTALL_DATA) $(MANS) $(DESTDIR)$(MANDIR)/man3
 
 clean:
-	rm -f libksql.a compats.o ksql.o $(HTMLS) ksql.tar.gz test test.db atom.xml
+	rm -f libksql.a compats.o ksql.o test test.db
+	rm -f $(HTMLS) $(XMLS) index.html atom.xml ksql.tar.gz ksql.svg
 
 distclean: clean
 	rm -f Makefile.configure config.h config.log
 
-.3.3.html:
-	mandoc -Ostyle=mandoc.css -Thtml $< >$@
+.3.3.xml:
+	( echo "<article data-sblg-article=\"1\" data-sblg-tags=\"manpage\">" ; \
+	  mandoc -Ofragment -Thtml $< ; \
+	  echo "</article>"; ) >$@
 
-index.html: versions.xml
+$(HTMLS): $(XMLS)
+	sblg -t manpage.xml -L $(XMLS)
+
+index.html: $(XMLS) index.xml versions.xml
+	sblg -s date -t index.xml -o $@ versions.xml $(XMLS)
 
 atom.xml: versions.xml
 	sblg -s date -a versions.xml >$@
 
-.xml.html:
-	sblg -s date -t $< -o $@ versions.xml
+.dot.svg:
+	dot -Tsvg $< | xsltproc --novalid notugly.xsl - >$@
+

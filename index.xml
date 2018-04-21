@@ -24,26 +24,9 @@
 				<li>
 					<label for="drop-2"><i class="fa fa-file fa-fw"></i> <span>docs</span></label>
 					<input type="checkbox" id="drop-2" />
-					<ul>
-						<li><a href="ksql.3.html">ksql(3)</a></li>
-						<li><a href="ksql_alloc.3.html">ksql_alloc(3)</a></li>
-						<li><a href="ksql_alloc_child.3.html">ksql_alloc_child(3)</a></li>
-						<li><a href="ksql_bind_double.3.html">ksql_bind_double(3)</a></li>
-						<li><a href="ksql_cfg_defaults.3.html">ksql_cfg_defaults(3)</a></li>
-						<li><a href="ksql_close.3.html">ksql_close(3)</a></li>
-						<li><a href="ksql_exec.3.html">ksql_exec(3)</a></li>
-						<li><a href="ksql_free.3.html">ksql_free(3)</a></li>
-						<li><a href="ksql_lastid.3.html">ksql_lastid(3)</a></li>
-						<li><a href="ksql_open.3.html">ksql_open(3)</a></li>
-						<li><a href="ksql_role.3.html">ksql_role(3)</a></li>
-						<li><a href="ksql_stmt_alloc.3.html">ksql_stmt_alloc(3)</a></li>
-						<li><a href="ksql_stmt_double.3.html">ksql_stmt_double(3)</a></li>
-						<li><a href="ksql_stmt_free.3.html">ksql_stmt_free(3)</a></li>
-						<li><a href="ksql_stmt_reset.3.html">ksql_stmt_reset(3)</a></li>
-						<li><a href="ksql_stmt_step.3.html">ksql_stmt_step(3)</a></li>
-						<li><a href="ksql_trans_commit.3.html">ksql_trans_commit(3)</a></li>
-						<li><a href="ksql_trans_open.3.html">ksql_trans_open(3)</a></li>
-					</ul>
+					<nav data-sblg-nav="1" data-sblg-navtag="manpage" data-sblg-navcontent="1" data-sblg-navsort="filename">
+						<a href="${sblg-base}.html">${sblg-base}</a>
+					</nav>
 				</li>
 				<li>
 					<a href="https://github.com/kristapsdz/ksql"><i class="fa fa-github fa-fw"></i> <span>github</span></a>
@@ -68,6 +51,9 @@
 						Specifically, it exits on any database errors; and upon exit (or signal), cleans up open statements, transactions, and databases.
 						See <a href="ksql.3.html">ksql(3)</a> and friends for details.
 					</p>
+					<figure>
+						<img src="ksql.svg" />
+					</figure>
 					<p>
 						It also has some handy security features: a <a
 							href="https://learnbchs.org/ksql.html">split-process</a> model protecting the database
@@ -81,7 +67,7 @@
 							X</span>.  
 						It is a <a href="https://www.bsd.lv">BSD.lv</a> project.
 					</p>
-					<nav data-sblg-nav="1" data-sblg-navsz="10" data-sblg-navcontent="1">
+					<nav data-sblg-nav="1" data-sblg-navsz="10" data-sblg-navcontent="1" data-sblg-navtag="version">
 						<div>
 							Version <span class="version">${sblg-title}</span> 
 							(<time datetime="${sblg-date}">${sblg-date}</time>)

@@ -4,67 +4,72 @@ body 					{ font-family: 'Alegreya sans', sans-serif;
 					  font-weight: 400;
 					  font-size: 14pt;
 					  color: #444;
-					  background-color: #f4f4f4; }
+					  background-color: #fafafa; }
 code, pre				{ font-size: smaller; }
 #nav					{ background-color: #1A1A1A; 
-					  padding: 1em 20%;
-					  color: #dd9400; }
+					  padding: 1em 25%; }
 #breadcrumbs				{ margin: 2em 0; 
-				 	  color: rgba(255, 255, 255, 0.5); }
+				 	  color: rgba(255, 255, 255, 0.6); }
 #nav label				{ cursor: pointer; }
 #nav label:hover,
-#nav a					{ color: orange; 
+#nav label,
+#nav a					{ color: #bb6;
+					  text-shadow: thin solid white;
 					  text-decoration: none; }
-#nav a:hover				{ color: #ffa500; }
-#breadcrumbs a				{ color: rgba(255, 153, 0, 0.5); }
-#breadcrumbs a:hover			{ color: rgba(255, 153, 0, 0.9); }
+#nav label:hover,
+#nav a:hover				{ color: #ff2; }
+#breadcrumbs a				{ opacity: 0.8; }
+#breadcrumbs a:hover			{ opacity: 1.0; }
 #nav input				{ display: none; }
 #nav ul					{ list-style-type: none; }
-#nav .menu ul				{ max-height: 0;
+#nav .menu nav > ul			{ max-height: 0;
 					  overflow: hidden;
 				  	  transition: max-height 0.5s ease-in-out; }
-#nav .menu input:checked + ul		{ max-height: 100em; }
-#nav .menu li:hover > ul 		{ max-height: 100em; }
+#nav .menu input:checked + nav > ul	{ max-height: 100em; }
+#nav .menu li:hover > nav > ul 		{ max-height: 100em; }
 #nav .menu 				{ display: table; 
 					  margin: 0;
 					  padding: 0; }
 #nav .menu > li				{ display: table-cell;
 					  vertical-align: middle; }
 #nav .menu > li + li			{ padding-left: 1em; }
-#nav .menu li				{ position: relative; }
-#nav .menu li > ul			{ position: absolute;
+#nav .menu li 				{ position: relative; }
+#nav .menu li nav > ul			{ position: absolute;
 				 	  left: 0;
 					  padding: 0;
 					  background-color: #1A1A1A;
 					  margin: 0;
 					  top: 100%; }
-#nav .menu li > ul li:hover		{ background-color: #4a4a4a; }
-#nav .menu li > ul li			{ margin: 0;
+#nav .menu li nav > ul li:hover		{ background-color: #4a4a4a; }
+#nav .menu li nav > ul li		{ margin: 0;
 					  padding: 2pt 1.5em; }
-#nav .menu li > ul li:first-child	{ margin-top: 8pt; }
-#nav .menu li > ul li:last-child	{ margin-bottom: 8pt; }
-nav[data-sblg-nav] ul			{ list-style-type: none; 
-					  border-top: thin solid #dd9400;
+#nav .menu li nav > ul li:first-child	{ margin-top: 8pt; }
+#nav .menu li nav > ul li:last-child	{ margin-bottom: 8pt; }
+article nav[data-sblg-nav] ul			{ list-style-type: none; 
+					  border-top: thin solid blue;
 					  color: #555;
 					  padding: 0; 
 					  margin-top: 2em;
 					  padding-top: 2em; }
-nav[data-sblg-nav] ul > li		{ opacity: 0.5; }
-nav[data-sblg-nav] ul > li:first-child	{ opacity: 1.0; }
-nav[data-sblg-nav] li + li		{ margin-top: 1.5em; }
-nav[data-sblg-nav] li:first-child + li	{ margin-top: 2.5em; }
-nav[data-sblg-nav] li > div:first-child	{ color: #000; }
-nav[data-sblg-nav] div > p:first-child	{ margin-top: 0.5em; }
+article nav[data-sblg-nav] ul > li		{ opacity: 0.5; }
+article nav[data-sblg-nav] ul > li:first-child	{ opacity: 1.0; }
+article nav[data-sblg-nav] li + li		{ margin-top: 1.5em; }
+article nav[data-sblg-nav] li:first-child + li	{ margin-top: 2.5em; }
+article nav[data-sblg-nav] li > div:first-child	{ color: #000; }
+article nav[data-sblg-nav] div > p:first-child	{ margin-top: 0.5em; }
 h1					{ margin: 0.5em auto; 
 					  font-weight: normal;
 					  font-size: 60pt; }
 header > *				{ display: inline-block; }
 header					{ color: #222; 
 					  font-size: x-large; }
-article					{ padding: 0 20%; }
+article					{ padding: 0 25%; }
+figure 					{ margin: 0; 
+					  text-align: center; }
+figure img				{ max-width: 100%; }
 article > section			{ }
 article > section > div			{ }
-a					{ color: #DD6C00; }
+a					{ color: blue; }
 footer					{ padding: 2em;
 					  font-size: 12pt;
 					  color: rgba(0, 0, 0, 0.4);
@@ -73,13 +78,13 @@ footer a				{ color: rgba(0, 0, 0, 0.7); }
 footer a:hover				{ color: rgba(0, 0, 0, 1.0); }
 
 @media only screen and (max-width: 760px), only screen and (max-device-width: 760px) {
-h1					{ font-size: 32pt; 
-					  display: block;
-					  margin: 0.2em auto; }
-header					{ margin-bottom: 1.5em; 
-					  margin-top: 1.5em; }
-footer					{ padding: 1em; }
-#nav					{ padding: 1ex 2%; }
-article					{ padding: 0 2%; }
-.menu span				{ display: none; }
+  h1					{ font-size: 32pt; 
+  					  display: block;
+  					  margin: 0.2em auto; }
+  header				{ margin-bottom: 1.5em; 
+  					  margin-top: 1.5em; }
+  footer				{ padding: 1em; }
+  #nav					{ padding: 1ex 2%; }
+  article				{ padding: 0 2%; }
+  .menu span				{ display: none; }
 }

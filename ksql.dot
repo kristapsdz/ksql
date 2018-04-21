@@ -1,0 +1,34 @@
+digraph {
+	rankdir="TB";
+	bgcolor="transparent";
+
+	subgraph cluster_0 {
+		stepa[label="ksql_alloc_child"];
+		step1a[label="ksql_open"];
+		step2a[label="ksql_stmt_alloc"];
+		step4a[label="ksql_stmt_step"];
+		stepa -> step1a -> step2a -> step4a;
+	}
+
+	subgraph cluster_1 {
+		bgcolor="gold";
+		stepb[label="child process",shape="plaintext"];
+		step1b[label="sqlite3_open"];
+		step2b[label="sqlite3_prepare_v2"];
+		step4b[label="sqlite3_step"];
+		stepb -> step1b[style="invis"];
+		step1b -> step2b -> step4b[style="invis"];
+	}
+
+	db[label="database", style="filled", fillcolor="gold"];
+
+	step1b -> db[dir="both"];
+	step2b -> db[dir="both"];
+	step4b -> db[dir="both"];
+
+	stepa -> stepb[label="fork(2)"];
+
+	step1a -> step1b[style="dotted", dir="both"];
+	step2a -> step2b[style="dotted", dir="both"];
+	step4a -> step4b[style="dotted", dir="both"];
+}
