@@ -1262,7 +1262,7 @@ ksql_alloc_child(const struct ksqlcfg *cfg,
 			c = ksqlsrv_stmt_step(p);
 			break;
 		case (KSQLOP_TRACE):
-			ksql_trace(p);
+			c = ksql_trace(p);
 			break;
 		case (KSQLOP_TRANS_CLOSE):
 			c = ksqlsrv_trans_close(p);
@@ -1271,7 +1271,7 @@ ksql_alloc_child(const struct ksqlcfg *cfg,
 			c = ksqlsrv_trans_open(p);
 			break;
 		case (KSQLOP_UNTRACE):
-			ksql_untrace(p);
+			c = ksql_untrace(p);
 			break;
 		default:
 			abort();
@@ -2503,14 +2503,28 @@ ksql_trace(struct ksql *p)
 	return(ksql_writecode(p, cc));
 }
 
-void
+enum ksqlc
 ksql_untrace(struct ksql *p)
 {
+	enum ksqlc	 c, cc;
+	int		 rc;
 
-	if (KSQLSRV_ISPARENT(p))
+	if (KSQLSRV_ISPARENT(p)) {
 		ksql_writeop(p, KSQLOP_UNTRACE);
+		if (KSQL_OK != (c = ksql_readcode(p, &cc)))
+			return(c);
+		return(cc);
+	} 
+
+	rc = sqlite3_config
+		(SQLITE_CONFIG_LOG, NULL, NULL);
+
+	if (SQLITE_MISUSE == rc)
+		cc = KSQL_ALREADYOPEN;
+	else if (SQLITE_OK != rc)
+		cc = KSQL_SYSTEM;
 	else
-		sqlite3_config(SQLITE_CONFIG_LOG, NULL, NULL);
+		cc = KSQL_OK;
+
+	return(ksql_writecode(p, cc));
 }
-
-

@@ -1,6 +1,6 @@
 .\"	$Id$
 .\"
-.\" Copyright (c) 2017 Kristaps Dzonsons <kristaps@bsd.lv>
+.\" Copyright (c) 2017--2018 Kristaps Dzonsons <kristaps@bsd.lv>
 .\"
 .\" Permission to use, copy, modify, and distribute this software for any
 .\" purpose with or without fee is hereby granted, provided that the above
@@ -26,21 +26,34 @@
 .In sys/types.h
 .In stdint.h
 .In ksql.h
-.Ft void
+.Ft enum ksqlc
 .Fo ksql_untrace
 .Fa "struct ksql *sql"
 .Fc
 .Sh DESCRIPTION
 The
 .Nm
-function disables SQLite's logging/tracing facility.
-Should follow calls to
+function disables SQLite's internal error logging facility enabled by
 .Xr ksql_trace 3 .
+.Pp
+The
+.Fn ksql_untrace
+function may only be called prior to
+.Xr ksql_open 3 .
 .\" .Sh CONTEXT
 .\" For section 9 functions only.
 .\" .Sh IMPLEMENTATION NOTES
 .\" Not used in OpenBSD.
-.\" .Sh RETURN VALUES
+.Sh RETURN VALUES
+This returns
+.Dv KSQL_ALREADYOPEN
+if invoked after
+.Xr ksql_open 3
+or
+.Dv KSQL_SYSTEM
+on system error.
+Otherwise, it returns
+.Dv KSQL_OK .
 .\" For sections 2, 3, and 9 function return values only.
 .\" .Sh ENVIRONMENT
 .\" For sections 1, 6, 7, and 8 only.
