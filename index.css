@@ -7,7 +7,7 @@ body 					{ font-family: 'Alegreya sans', sans-serif;
 					  background-color: #fafafa; }
 code, pre				{ font-size: smaller; }
 #nav					{ background-color: #1A1A1A; 
-					  padding: 1em 25%; }
+					  padding: 1em 25% 0.25em 25%; }
 #breadcrumbs				{ margin: 2em 0; 
 				 	  color: rgba(255, 255, 255, 0.6); }
 #nav label				{ cursor: pointer; }
@@ -45,23 +45,30 @@ code, pre				{ font-size: smaller; }
 					  padding: 2pt 1.5em; }
 #nav .menu li nav > ul li:first-child	{ margin-top: 8pt; }
 #nav .menu li nav > ul li:last-child	{ margin-bottom: 8pt; }
-article nav[data-sblg-nav] ul			{ list-style-type: none; 
-					  border-top: thin solid blue;
+strong					{ font-weight: 500; }
+article nav[data-sblg-nav] ul		{ list-style-type: none; 
+					  border-top: thin solid rgba(0, 0, 255, 0.2);
 					  color: #555;
 					  padding: 0; 
 					  margin-top: 2em;
 					  padding-top: 2em; }
-article nav[data-sblg-nav] ul > li		{ opacity: 0.5; }
-article nav[data-sblg-nav] ul > li:first-child	{ opacity: 1.0; }
-article nav[data-sblg-nav] li + li		{ margin-top: 1.5em; }
-article nav[data-sblg-nav] li:first-child + li	{ margin-top: 2.5em; }
-article nav[data-sblg-nav] li > div:first-child	{ color: #000; }
-article nav[data-sblg-nav] div > p:first-child	{ margin-top: 0.5em; }
-h1					{ margin: 0.5em auto; 
+article nav[data-sblg-nav] ul > li	{ opacity: 0.5; }
+article nav[data-sblg-nav] ul > li:first-child	
+					{ opacity: 1.0; }
+article nav[data-sblg-nav] li + li	{ margin-top: 1.5em; }
+article nav[data-sblg-nav] li:first-child + li	
+					{ margin-top: 2.5em; }
+article nav[data-sblg-nav] li > div:first-child	
+					{ color: #000; }
+article nav[data-sblg-nav] div > p:first-child	
+					{ margin-top: 0.5em; }
+h1					{ margin: 0;
 					  font-weight: normal;
+					  color: #000;
 					  font-size: 60pt; }
-header > *				{ display: inline-block; }
-header					{ color: #222; 
+header a				{ color: #66a; }
+header					{ color: #888; 
+					  margin: 4rem 0;
 					  font-size: x-large; }
 article					{ padding: 0 25%; }
 figure 					{ margin: 0; 
@@ -86,5 +93,4 @@ footer a:hover				{ color: rgba(0, 0, 0, 1.0); }
   footer				{ padding: 1em; }
   #nav					{ padding: 1ex 2%; }
   article				{ padding: 0 2%; }
-  .menu span				{ display: none; }
 }

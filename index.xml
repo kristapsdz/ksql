@@ -19,17 +19,17 @@
 			</section>
 			<ul class="menu">
 				<li>
-					<a href="snapshots" itemprop="downloadURL"><i class="fa fa-download fa-fw"></i> <span>download</span></a>
+					<a href="snapshots" itemprop="downloadURL"><span>download</span></a>
 				</li>
 				<li>
-					<label for="drop-2"><i class="fa fa-file fa-fw"></i> <span>docs</span></label>
+					<label for="drop-2"><span>docs <i class="fa fa-chevron-down"></i></span></label>
 					<input type="checkbox" id="drop-2" />
 					<nav data-sblg-nav="1" data-sblg-navtag="manpage" data-sblg-navcontent="1" data-sblg-navsort="filename">
 						<a href="${sblg-base}.html">${sblg-base}</a>
 					</nav>
 				</li>
 				<li>
-					<a href="https://github.com/kristapsdz/ksql"><i class="fa fa-github fa-fw"></i> <span>github</span></a>
+					<a href="https://github.com/kristapsdz/ksql"><span>github</span></a>
 				</li>
 				<li>
 					<a href="atom.xml"><i class="fa fa-rss fa-fw"></i></a>
@@ -44,27 +44,29 @@
 						<div itemprop="description">yet another <a href="https://www.sqlite.org">SQLite</a> wrapper</div>
 					</header>
 					<p>
-						<span class="nm">ksql</span> is a <q>lazy man's</q> wrapper for the SQLite <a
-							href="https://www.sqlite.org/c3ref/intro.html">C-language interface</a>.
+						<span class="nm">ksql</span> is a <q>lazy man's</q> C/C++ wrapper for the SQLite <a
+							href="https://www.sqlite.org/c3ref/intro.html">API interface</a>.
 						It is written to make sure sloppy programming won't cause your SQLite database to be inconsistent (transactions and
 						statements open on exit and certain signals).
 						Specifically, it exits on any database errors; and upon exit (or signal), cleans up open statements, transactions, and databases.
 						See <a href="ksql.3.html">ksql(3)</a> and friends for details.
 					</p>
-					<figure>
-						<img src="ksql.svg" />
-					</figure>
 					<p>
 						It also has some handy security features: a <a
 							href="https://learnbchs.org/ksql.html">split-process</a> model protecting the database
 						from your application, full RBAC capabilities on the statement level, and immutable stored
 						statements to prevent the application from crafting its own SQL.
 					</p>
+					<figure>
+						<img src="ksql.svg" alt="ksql(3) operation" />
+					</figure>
 					<p>
 						The library runs on <span itemprop="operatingSystem">UNIX</span> systems: <span
 							itemprop="operatingSystem">OpenBSD</span>, <span
 							itemprop="operatingSystem">Linux</span>, and <span itemprop="operatingSystem">Mac OS
 							X</span>.  
+						It benefits the most from OpenBSD systems using the <a
+							href="https://man.openbsd.org/pledge.2">pledge(2)</a> security mechanism.
 						It is a <a href="https://www.bsd.lv">BSD.lv</a> project.
 					</p>
 					<nav data-sblg-nav="1" data-sblg-navsz="10" data-sblg-navcontent="1" data-sblg-navtag="version">
@@ -81,7 +83,7 @@
 		</article>
 		<footer>
 			<div>
-				&#169; 2016&#8211;2017 <a rel="author" href="https://github.com/kristapsdz">Kristaps Dzonsons</a>
+				&#169; 2016&#8211;2018 <a rel="author" href="https://github.com/kristapsdz">Kristaps Dzonsons</a>
 			</div>
 		</footer>
 	</body>
