@@ -1,17 +1,17 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8"/>
-  <style>
-    table.head, table.foot { width: 100%; }
-    td.head-rtitle, td.foot-os { text-align: right; }
-    td.head-vol { text-align: center; }
-    div.Pp { margin: 1ex 0ex; }
-  </style>
-  <link rel="stylesheet" href="mandoc.css" type="text/css" media="all"/>
-  <title>KCGI(3)</title>
-</head>
-<body>
-	<article data-sblg-article="1"></article>
-</body>
+<html lang="en">
+	<head>
+		<meta charset="utf-8"/>
+		<style>
+			table.head, table.foot { width: 100%; }
+			td.head-rtitle, td.foot-os { text-align: right; }
+			td.head-vol { text-align: center; }
+			div.Pp { margin: 1ex 0ex; }
+		</style>
+		<link rel="stylesheet" href="mandoc.css" type="text/css" media="all" />
+		<title>${sblg-base}</title>
+	</head>
+	<body>
+		<article data-sblg-article="1" data-sblg-permlink="0"></article>
+	</body>
 </html>
