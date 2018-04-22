@@ -91,6 +91,7 @@ TAILQ_HEAD(kcacheq, kcache);
 struct	ksqlstmt {
 	sqlite3_stmt		*stmt; /* statement */
 	size_t			 id; /* its ID (init'd as SIZE_MAX) */
+	size_t			 bcols; /* valid bind columns */
 	struct kcacheq		 cache; /* pointer cache */
 	struct ksql		*sql; /* corresponding db */
 	void			*ptr; /* daemon mode pointer */
@@ -151,6 +152,7 @@ static	const char * const ksqlcs[] = {
 	"system error", /* KSQL_SYSTEM */
 	NULL, /* KSQL_EOF */
 	"security violation", /* KSQL_SECURITY */
+	"invalid bind parameter index", /* KSQL_BINDPARAM */
 };
 
 /*
@@ -258,6 +260,22 @@ ksql_err(struct ksql *p, enum ksqlc erc, const char *msg)
 	if (KSQL_EXIT_ON_ERR & p->cfg.flags)
 		exit(EXIT_FAILURE);
 	return(erc);
+}
+
+/*
+ * This pass-through to ksql_err() accepts variable parameters.
+ * They must resolve to less than 1024 characters before truncation.
+ */
+static enum ksqlc
+ksql_verr(struct ksql *p, enum ksqlc erc, const char *fmt, ...)
+{
+	va_list  ap;
+	char	 buf[1024];
+
+	va_start(ap, fmt);
+	vsnprintf(buf, sizeof(buf), fmt, ap);
+	va_end(ap);
+	return ksql_err(p, erc, buf);
 }
 
 /*
@@ -2038,6 +2056,7 @@ again:
 
 	ss = TAILQ_FIRST(&p->stmt_free);
 	assert(NULL != ss);
+	ss->bcols = sqlite3_bind_parameter_count(st);
 	ss->stmt = st;
 	ss->id = id;
 	ss->sql = p;
@@ -2057,6 +2076,10 @@ ksql_bind_zblob(struct ksqlstmt *stmt, size_t pos, size_t valsz)
 	if (KSQLSRV_ISPARENT(stmt->sql))
 		return(ksql_writebound(stmt, 
 			KSQLOP_BIND_ZBLOB, pos, NULL, valsz));
+	if (pos >= stmt->bcols)
+		return(ksql_verr(stmt->sql, KSQL_BINDPARAM, 
+			"parameter index %zu exceeds maximum "
+			"index %zu", pos, stmt->bcols - 1));
 	rc = sqlite3_bind_zeroblob(stmt->stmt, pos + 1, valsz);
 	if (SQLITE_OK == rc)
 		return(KSQL_OK);
@@ -2072,6 +2095,11 @@ ksql_bind_blob(struct ksqlstmt *stmt,
 	if (KSQLSRV_ISPARENT(stmt->sql))
 		return(ksql_writebound(stmt, 
 			KSQLOP_BIND_BLOB, pos, val, valsz));
+
+	if (pos >= stmt->bcols)
+		return(ksql_verr(stmt->sql, KSQL_BINDPARAM, 
+			"parameter index %zu exceeds maximum "
+			"index %zu", pos, stmt->bcols - 1));
 	rc = sqlite3_bind_blob
 		(stmt->stmt, pos + 1, val, valsz, SQLITE_TRANSIENT);
 	if (SQLITE_OK == rc)
@@ -2088,6 +2116,10 @@ ksql_bind_str(struct ksqlstmt *stmt, size_t pos, const char *val)
 		return(ksql_writebound(stmt, 
 			KSQLOP_BIND_TEXT, pos, val, 0));
 
+	if (pos >= stmt->bcols)
+		return(ksql_verr(stmt->sql, KSQL_BINDPARAM, 
+			"parameter index %zu exceeds maximum "
+			"index %zu", pos, stmt->bcols - 1));
 	rc = sqlite3_bind_text
 		(stmt->stmt, pos + 1, val, -1, SQLITE_TRANSIENT);
 	if (SQLITE_OK == rc)
@@ -2104,6 +2136,10 @@ ksql_bind_double(struct ksqlstmt *stmt, size_t pos, double val)
 		return(ksql_writebound(stmt, 
 			KSQLOP_BIND_DOUBLE, pos, 
 			&val, sizeof(double)));
+	if (pos >= stmt->bcols)
+		return(ksql_verr(stmt->sql, KSQL_BINDPARAM, 
+			"parameter index %zu exceeds maximum "
+			"index %zu", pos, stmt->bcols - 1));
 	rc = sqlite3_bind_double(stmt->stmt, pos + 1, val);
 	if (SQLITE_OK == rc)
 		return(KSQL_OK);
@@ -2117,6 +2153,10 @@ ksql_bind_null(struct ksqlstmt *stmt, size_t pos)
 	if (KSQLSRV_ISPARENT(stmt->sql))
 		return(ksql_writebound(stmt, 
 			KSQLOP_BIND_NULL, pos, NULL, 0));
+	if (pos >= stmt->bcols)
+		return(ksql_verr(stmt->sql, KSQL_BINDPARAM, 
+			"parameter index %zu exceeds maximum "
+			"index %zu", pos, stmt->bcols - 1));
 	if (SQLITE_OK == sqlite3_bind_null(stmt->stmt, pos + 1))
 		return(KSQL_OK);
 	return(ksql_dberr(stmt->sql));
@@ -2130,6 +2170,10 @@ ksql_bind_int(struct ksqlstmt *stmt, size_t pos, int64_t val)
 		return(ksql_writebound(stmt, 
 			KSQLOP_BIND_INT, pos, 
 			&val, sizeof(int64_t)));
+	if (pos >= stmt->bcols)
+		return(ksql_verr(stmt->sql, KSQL_BINDPARAM, 
+			"parameter index %zu exceeds maximum "
+			"index %zu", pos, stmt->bcols - 1));
 	if (SQLITE_OK == sqlite3_bind_int64(stmt->stmt, pos + 1, val))
 		return(KSQL_OK);
 	return(ksql_dberr(stmt->sql));
