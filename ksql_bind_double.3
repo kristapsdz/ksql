@@ -85,8 +85,12 @@ the contents are internally copied.
 .\" Not used in OpenBSD.
 .Sh RETURN VALUES
 These functions return
+.Dv KSQL_BINDCOL
+if the requested
+.Fa column
+is not associated with a statement parameter,
 .Dv KSQL_DB
-if the underlying bind operation fails or
+if the underlying bind operation fails, or
 .Dv KSQL_OK
 on success.
 .\" For sections 2, 3, and 9 function return values only.

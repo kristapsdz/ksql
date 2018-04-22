@@ -76,7 +76,8 @@ enum ksqlc {
 	KSQL_SYSTEM, /* system error (fork, socketpair, etc.) */
 	KSQL_EOF, /* internal only */
 	KSQL_SECURITY, /* security breach */
-	KSQL_BINDPARAM, /* invalid bind parameter index */
+	KSQL_BINDCOL, /* invalid bind column index */
+	KSQL_RESULTCOL, /* invalid result column index */
 };
 
 typedef	void (*ksqldbmsg)(void *, int, int, const char *, const char *);
