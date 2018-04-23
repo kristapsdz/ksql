@@ -177,6 +177,7 @@ enum	ksqlop {
 	KSQLOP_EXEC, /* ksql_exec */
 	KSQLOP_LASTID, /* ksql_lastid */
 	KSQLOP_OPEN, /* ksql_open */
+	KSQLOP_RESULT_INT, /* ksql_result_int */
 	KSQLOP_ROLE, /* ksql_role */
 	KSQLOP_STMT_ALLOC, /* ksql_stmt_alloc */
 	KSQLOP_STMT_FREE, /* ksql_stmt_free */
@@ -1006,6 +1007,23 @@ ksqlsrv_stmt_isnull(struct ksql *p)
 }
 
 static enum ksqlc
+ksqlsrv_result_int(struct ksql *p)
+{
+	enum ksqlc	 c, cc;
+	struct ksqlstmt	*stmt;
+	size_t		 col;
+	int64_t		 val;
+
+	if (KSQL_OK != (c = ksql_readptr(p, &stmt)) ||
+	    KSQL_OK != (c = ksql_readsz(p, &col)))
+		return c;
+	c = ksql_result_int(stmt, &val, col);
+	if (KSQL_OK != (cc = ksql_writecode(p, c)))
+		return c;
+	return ksql_writebuf(p, &val, sizeof(int64_t));
+}
+
+static enum ksqlc
 ksqlsrv_stmt_int(struct ksql *p)
 {
 	enum ksqlc	 c;
@@ -1265,6 +1283,9 @@ ksql_alloc_child(const struct ksqlcfg *cfg,
 			break;
 		case (KSQLOP_OPEN):
 			c = ksqlsrv_open(p);
+			break;
+		case (KSQLOP_RESULT_INT):
+			c = ksqlsrv_result_int(p);
 			break;
 		case (KSQLOP_ROLE):
 			c = ksqlsrv_role(p);
@@ -2339,6 +2360,28 @@ ksql_lastid(struct ksql *p, int64_t *id)
 }
 
 /*
+ * Write the full message required for a ksql_result_xxx function when in
+ * the parent of a parent-child daemon scenario.
+ */
+static enum ksqlc
+ksql_writeres(struct ksqlstmt *stmt, enum ksqlop op, 
+	size_t col, void *buf, size_t bufsz)
+{
+	enum ksqlc	 c, code;
+
+	assert(KSQLSRV_ISPARENT(stmt->sql));
+
+	if (KSQL_OK != (c = ksql_writeop(stmt->sql, op)) ||
+	    KSQL_OK != (c = ksql_writeptr(stmt->sql, stmt->ptr)) ||
+	    KSQL_OK != (c = ksql_writesz(stmt->sql, col)) ||
+	    KSQL_OK != (c = ksql_readcode(stmt->sql, &code)) ||
+	    KSQL_OK != (c = ksql_readbuf(stmt->sql, buf, bufsz, 0)))
+		return c;
+
+	return code;
+}
+
+/*
  * Write the full message required for a ksql_stmt_xxx function when in
  * the parent of a parent-child daemon scenario.
  * Returns zero on failure, non-zero on success.
@@ -2458,6 +2501,28 @@ ksql_stmt_int(struct ksqlstmt *stmt, size_t col)
 		return(sqlite3_column_int64(stmt->stmt, col));
 	return(ksql_writecol(stmt, KSQLOP_COL_INT, 
 		col, &val, sizeof(int64_t)) ? val : 0);
+}
+
+enum ksqlc
+ksql_result_int(struct ksqlstmt *stmt, int64_t *p, size_t col)
+{
+	enum ksqlc	 c;
+
+	if (KSQLSRV_ISPARENT(stmt->sql))
+		return ksql_writeres(stmt, KSQLOP_RESULT_INT, 
+			col, p, sizeof(int64_t));
+
+	if (col >= stmt->rcols) {
+		c = ksql_verr(stmt->sql, KSQL_RESULTCOL, 
+			"result index %zu exceeds maximum "
+			"index %zu", col, stmt->rcols - 1);
+	 	*p = 0;
+	} else {
+		c = KSQL_OK;
+		*p = sqlite3_column_int64(stmt->stmt, col);
+	}
+
+	return c;
 }
 
 const char *
