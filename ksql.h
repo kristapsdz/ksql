@@ -133,7 +133,9 @@ enum ksqlc	 ksql_exec(struct ksql *, const char *, size_t);
 enum ksqlc	 ksql_free(struct ksql *);
 enum ksqlc	 ksql_lastid(struct ksql *, int64_t *);
 enum ksqlc	 ksql_open(struct ksql *, const char *);
+#if 0
 enum ksqlc	 ksql_result_int(struct ksqlstmt *, int64_t *, size_t);
+#endif
 void		 ksql_role(struct ksql *, size_t);
 enum ksqlc	 ksql_stmt_alloc(struct ksql *, 
 			struct ksqlstmt **, const char *, size_t);
