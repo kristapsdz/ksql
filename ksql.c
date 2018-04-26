@@ -1029,7 +1029,6 @@ ksqlsrv_result_int(struct ksql *p)
 	/* Check code *before* writing result. */
 	return ksql_writebuf(p, &val, sizeof(int64_t));
 }
-#endif
 
 static enum ksqlc
 ksqlsrv_result_text(struct ksql *p)
@@ -1051,6 +1050,7 @@ ksqlsrv_result_text(struct ksql *p)
 	/* Check code *before* writing result. */
 	return ksql_writestr(p, val);
 }
+#endif
 
 
 static enum ksqlc
@@ -2391,6 +2391,7 @@ ksql_lastid(struct ksql *p, int64_t *id)
 	return(KSQL_OK);
 }
 
+#if 0
 /*
  * Write the full message required for a ksql_result_xxx function when in
  * the parent of a parent-child daemon scenario.
@@ -2417,6 +2418,7 @@ ksql_readres(struct ksqlstmt *stmt, enum ksqlop op,
 
 	return KSQL_OK;
 }
+#endif
 
 /*
  * Write the full message required for a ksql_stmt_xxx function when in
@@ -2540,6 +2542,7 @@ ksql_stmt_int(struct ksqlstmt *stmt, size_t col)
 		col, &val, sizeof(int64_t)) ? val : 0);
 }
 
+#if 0
 /*
  * Make sure the result at column "col" is accessible to the current
  * statement.
@@ -2558,7 +2561,6 @@ ksql_result_check(struct ksqlstmt *stmt, size_t col)
 	return c;
 }
 
-#if 0
 enum ksqlc
 ksql_result_int(struct ksqlstmt *stmt, int64_t *p, size_t col)
 {
