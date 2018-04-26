@@ -98,7 +98,7 @@ main(void)
 
 	if (KSQL_OK != ksql_stmt_alloc(sql, &stmt, NULL, 0))
 		errx(EXIT_FAILURE, "ksql_stmt_alloc");
-	for (i = 0; i < 1000; i++) {
+	for (i = 0; i < 50; i++) {
 #if HAVE_ARC4RANDOM
 		val = arc4random();
 #else
@@ -142,7 +142,7 @@ main(void)
 	if (KSQL_OK != ksql_stmt_alloc(sql, &stmt, NULL, 0))
 		errx(EXIT_FAILURE, "ksql_stmt_alloc");
 
-	for (i = 0; i < 1000; i++) {
+	for (i = 0; i < 50; i++) {
 #if HAVE_ARC4RANDOM
 		val = arc4random();
 #else
@@ -198,6 +198,12 @@ main(void)
 			ksql_stmt_double(stmt, 3));
 		printf("Step (%zu:5): %" PRId64 "\n", i,
 			ksql_stmt_int(stmt, 4));
+#if 0
+		if (KSQL_OK != ksql_result_int(stmt, &res, 0))
+			errx(EXIT_FAILURE, "ksql_result_int");
+		if (res != ksql_stmt_int(stmt, 0))
+			errx(EXIT_FAILURE, "ksql_result_int (inequality: %" PRId64 " != %" PRId64 ")", res, ksql_stmt_int(stmt, 0));
+#endif
 		i++;
 	}
 
