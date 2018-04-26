@@ -3,6 +3,43 @@
 <articles>
 	<article data-sblg-article="1" data-sblg-tags="version">
 		<header>
+			<h1>0.3.1</h1>
+			<address>Kristaps Dzonsons</address>
+			<time datetime="2018-04-21">2018-04-21</time>
+		</header>
+		<aside>
+			<p>
+				Make sure that one cannot bind a parameter to an invalid index.
+				These now cause the bind functions (see <a
+					href="ksql_bind_double.3.html">ksql_bind_double(3)</a> and
+				friends) to return <code>KSQL_BINDPARAM</code>.
+			</p>
+			<p>
+				<strong>API change</strong>: have <a
+					href="ksql_trace.3.html">ksql_trace(3)</a> and <a
+					href="ksql_untrace.3.html">ksql_untrace(3)</a> return proper
+				error codes.
+			</p>
+			<p>
+				Document <a href="https://man.openbsd.org/pledge.2">pledge(2)</a>
+				promises in <a href="ksql.3.html">ksql(3)</a>.
+			</p>
+			<p>
+				A nice fix due to <a
+					href="https://github.com/kristapsdz/ksql/issues/7">issues/7</a>
+				as investigated by schwarze@: allow running without
+				<code>/dev/null</code> at all.  Yay!
+			</p>
+			<p>
+				The fixes in this release were implemented or suggested by Ingo
+				Schwarze (<q>schwarze@</q>) in an audit generously funded by CAPEM
+				Solutions, Inc.  
+				Thank you so much!
+			</p>
+		</aside>
+	</article>
+	<article data-sblg-article="1" data-sblg-tags="version">
+		<header>
 			<h1>0.3.0</h1>
 			<address>Kristaps Dzonsons</address>
 			<time datetime="2018-03-21">ongoing</time>
@@ -44,6 +81,12 @@
 				caller to close the database manually.
 				Also, add a field to <code>struct ksqlrole</code> that inhibits a
 				role's ability to open a database.
+			</p>
+			<p>
+				When binding blobs or text, the application now internally copies
+				the buffer.  This allows callers to discard the memory buffer
+				immediately after binding it, without needing to wait until the
+				statement is finalised.
 			</p>
 		</aside>
 	</article>
