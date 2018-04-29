@@ -41,8 +41,7 @@
 #include <sqlite3.h>
 
 #include "ksql.h"
-
-TAILQ_HEAD(ksqlstmtq, ksqlstmt);
+#include "extern.h"
 
 /*
  * All of our current connections.
@@ -71,70 +70,6 @@ static	sigjmp_buf jmpbuf;
 static	volatile sig_atomic_t dojmp;
 
 /*
- * When obtaining results from the parent-child model, we need to keep
- * track of the pointers in blob and text results to maintain SQLite's
- * invariant that a pointer will be available til the next type
- * conversion, step, reset, or free.
- * This is only applicable for the parent.
- */
-struct	kcache {
-	void	 		*s; /* pointer to results */
-	TAILQ_ENTRY(kcache)	 entries;
-};
-
-TAILQ_HEAD(kcacheq, kcache);
-
-/*
- * Holder for pending SQLite statements.
- * If we exit out of state, we'll finalise these statements.
- */
-struct	ksqlstmt {
-	sqlite3_stmt		*stmt; /* statement */
-	size_t			 id; /* its ID (init'd as SIZE_MAX) */
-	size_t			 bcols; /* valid bind columns */
-	size_t			 rcols; /* valid result set columns */
-	struct kcacheq		 cache; /* pointer cache */
-	struct ksql		*sql; /* corresponding db */
-	void			*ptr; /* daemon mode pointer */
-	TAILQ_ENTRY(ksqlstmt) 	 entries;
-};
-
-/*
- * When running in client-server mode, this holds information about the
- * process on the other end of our socket.
- * If the "pid" is 0, then we're connected to the parent (i.e., we're
- * the child); if it's non-zero, we're the parent.
- */
-struct	ksqld {
-	pid_t	 pid; /* other process of socket */
-	int	 fd; /* -1 on init */
-};
-
-/*
- * Holds all information about open connections.
- * In client-server mode, this holds a "daemon" field used to
- * communicate with the other end of the connection.
- */
-struct	ksql {
-	struct ksqlcfg	 	  cfg;
-	size_t			  role; /* current role */
-	sqlite3			 *db;
-	char			 *dbfile; /* fname of db */
-	struct ksqlstmtq	  stmt_used; /* used list */
-	struct ksqlstmtq	  stmt_free; /* free list */
-	size_t			  trans; /* current transactions */
-	struct ksqld		 *daemon; /* if applicable */
-	unsigned int		  flags;
-#define	KSQLFL_TRANS		  0x01 /* trans is open */
-	TAILQ_ENTRY(ksql)	  entries;
-};
-
-#define	KSQLSRV_ISPARENT(_p) \
-	(NULL != (_p)->daemon && (_p)->daemon->pid)
-#define	KSQLSRV_ISCHILD(_p) \
-	(NULL != (_p)->daemon && 0 == (_p)->daemon->pid)
-
-/*
  * Hard-coded string name for errors.
  * Those without a value aren't errors, just conditions.
  */
@@ -155,40 +90,6 @@ static	const char * const ksqlcs[] = {
 	"security violation", /* KSQL_SECURITY */
 	"invalid bind column index", /* KSQL_BINDCOL */
 	"invalid result column index", /* KSQL_RESULTCOL */
-};
-
-/*
- * Operation code used to communicate between client-server.
- */
-enum	ksqlop {
-	KSQLOP_BIND_BLOB, /* ksql_bind_blob */
-	KSQLOP_BIND_DOUBLE, /* ksql_bind_double */
-	KSQLOP_BIND_INT, /* ksql_bind_int */
-	KSQLOP_BIND_NULL, /* ksql_bind_null */  
-	KSQLOP_BIND_TEXT, /* ksql_bind_text */  
-	KSQLOP_BIND_ZBLOB, /* ksql_bind_zblob */
-	KSQLOP_CLOSE, /* ksql_close */
-	KSQLOP_COL_BLOB, /* ksql_stmt_blob */
-	KSQLOP_COL_BYTES, /* ksql_stmt_bytes */
-	KSQLOP_COL_DOUBLE, /* ksql_stmt_double */
-	KSQLOP_COL_INT, /* ksql_stmt_int */
-	KSQLOP_COL_ISNULL, /* ksql_stmt_isnull */
-	KSQLOP_COL_STR, /* ksql_stmt_str */
-	KSQLOP_EXEC, /* ksql_exec */
-	KSQLOP_LASTID, /* ksql_lastid */
-	KSQLOP_OPEN, /* ksql_open */
-#if 0
-	KSQLOP_RESULT_INT, /* ksql_result_int */
-#endif
-	KSQLOP_ROLE, /* ksql_role */
-	KSQLOP_STMT_ALLOC, /* ksql_stmt_alloc */
-	KSQLOP_STMT_FREE, /* ksql_stmt_free */
-	KSQLOP_STMT_RESET, /* ksql_stmt_reset */
-	KSQLOP_STMT_STEP, /* ksql_stmt_step */
-	KSQLOP_TRACE, /* ksql_trace */
-	KSQLOP_TRANS_CLOSE, /* ksql_trans_xxxx */
-	KSQLOP_TRANS_OPEN, /* ksql_trans_xxxx */
-	KSQLOP_UNTRACE, /* ksql_untrace */
 };
 
 /*
@@ -229,7 +130,7 @@ ksql_atexit(void)
  * This can be used to simply print errors and messages.
  * Does nothing if there's no error handler.
  */
-static void
+void
 ksql_err_noexit(struct ksql *p, enum ksqlc erc, const char *msg)
 {
 
@@ -257,7 +158,7 @@ ksql_tracemsg(void *pArg, int iErrCode, const char *zMsg)
 /*
  * See ksql_dberr().
  */
-static enum ksqlc
+enum ksqlc
 ksql_err(struct ksql *p, enum ksqlc erc, const char *msg)
 {
 
@@ -271,7 +172,7 @@ ksql_err(struct ksql *p, enum ksqlc erc, const char *msg)
  * This pass-through to ksql_err() accepts variable parameters.
  * They must resolve to less than 1024 characters before truncation.
  */
-static enum ksqlc
+enum ksqlc
 ksql_verr(struct ksql *p, enum ksqlc erc, const char *fmt, ...)
 {
 	va_list  ap;
@@ -305,7 +206,7 @@ ksql_dberr_noexit(struct ksql *p)
  * Pass an error to the error handler, if found.
  * Then if we're exiting on errors, do it here.
  */
-static enum ksqlc
+enum ksqlc
 ksql_dberr(struct ksql *p)
 {
 
@@ -465,7 +366,7 @@ ksql_jmp_end(void)
  * On success (all "sz" bytes read), return KSQL_OK.
  * Otherwise, invoke ksql_err() with the given error code.
  */
-static enum ksqlc
+enum ksqlc
 ksql_readbuf(struct ksql *p, void *buf, size_t sz, int eofok)
 {
 	struct pollfd	 pfd;
@@ -535,7 +436,7 @@ ksql_readop(struct ksql *p, enum ksqlop *op)
  * Read a scalar size "sz" from the connection in "p".
  * See ksql_readbuf().
  */
-static enum ksqlc
+enum ksqlc
 ksql_readsz(struct ksql *p, size_t *sz)
 {
 
@@ -546,14 +447,14 @@ ksql_readsz(struct ksql *p, size_t *sz)
  * Read a scalar code "c" from the connection in "p".
  * See ksql_readbuf().
  */
-static enum ksqlc
+enum ksqlc
 ksql_readcode(struct ksql *p, enum ksqlc *c)
 {
 
 	return(ksql_readbuf(p, c, sizeof(enum ksqlc), 0));
 }
 
-static enum ksqlc
+enum ksqlc
 ksql_readptr(struct ksql *p, struct ksqlstmt **cp)
 {
 
@@ -566,7 +467,7 @@ ksql_readptr(struct ksql *p, struct ksqlstmt **cp)
  * be freed automatically).
  * See ksql_readbuf().
  */
-static enum ksqlc
+enum ksqlc
 ksql_readstr(struct ksql *p, char **buf)
 {
 	size_t	 	sz;
@@ -698,7 +599,7 @@ ksql_writesz(struct ksql *p, size_t pos)
  * Write a scalar code "c" to the connected process in "p".
  * See ksql_writebuf().
  */
-static enum ksqlc
+enum ksqlc
 ksql_writecode(struct ksql *p, enum ksqlc c)
 {
 
@@ -710,7 +611,7 @@ ksql_writecode(struct ksql *p, enum ksqlc c)
  * If "op" is KSQLOP_BIND_NULL, the "buf" and "bufsz" are ignored.
  * Returns the response code read from the connected system.
  */
-static enum ksqlc
+enum ksqlc
 ksql_writebound(struct ksqlstmt *ss, enum ksqlop op, 
 	size_t pos, const void *buf, size_t bufsz)
 {
@@ -822,63 +723,6 @@ ksqlsrv_lastid(struct ksql *p)
 	if (KSQL_OK != cc)
 		return(KSQL_OK);
 	return(ksql_writebuf(p, &id, sizeof(int64_t)));
-}
-
-static enum ksqlc
-ksqlsrv_bind(struct ksql *p, enum ksqlop op)
-{
-	enum ksqlc	 c;
-	size_t		 pos;
-	char		*buf = NULL;
-	struct ksqlstmt	*ss;
-	size_t		 bufsz;
-
-	if (KSQL_OK != (c = ksql_readptr(p, &ss)))
-		return(c);
-	if (KSQL_OK != (c = ksql_readsz(p, &pos)))
-		return(c);
-
-	if (KSQLOP_BIND_TEXT == op) {
-		if (KSQL_OK != (c = ksql_readstr(p, &buf)))
-			return(c);
-		c = ksql_bind_str(ss, pos, buf);
-	} else if (KSQLOP_BIND_ZBLOB == op) {
-		if (KSQL_OK != (c = ksql_readsz(p, &bufsz)))
-			return(c);
-		c = ksql_bind_zblob(ss, pos, bufsz);
-	} else if (KSQLOP_BIND_NULL != op) {
-		if (KSQL_OK != (c = ksql_readsz(p, &bufsz)))
-			return(c);
-		/* FIXME: handle zero-length. */
-		if (NULL == (buf = malloc(bufsz))) {
-			buf = strerror(errno);
-			return(ksql_err(p, KSQL_MEM, buf));
-		}
-		c = ksql_readbuf(p, buf, bufsz, 0);
-		if (KSQL_OK != c) {
-			free(buf);
-			return(c);
-		}
-		switch (op) {
-		case (KSQLOP_BIND_BLOB):
-			c = ksql_bind_blob(ss, pos, buf, bufsz);
-			break;
-		case (KSQLOP_BIND_DOUBLE):
-			assert(bufsz == sizeof(double));
-			c = ksql_bind_double(ss, pos, *(double *)buf);
-			break;
-		case (KSQLOP_BIND_INT):
-			assert(bufsz == sizeof(int64_t));
-			c = ksql_bind_int(ss, pos, *(int64_t *)buf);
-			break;
-		default:
-			abort();
-		}
-	} else
-		c = ksql_bind_null(ss, pos);
-
-	free(buf);
-	return(ksql_writecode(p, c));
 }
 
 /*
@@ -1008,7 +852,6 @@ ksqlsrv_stmt_isnull(struct ksql *p)
 	return(ksql_writebuf(p, &val, sizeof(int)));
 }
 
-#if 0
 static enum ksqlc
 ksqlsrv_result_int(struct ksql *p)
 {
@@ -1031,7 +874,7 @@ ksqlsrv_result_int(struct ksql *p)
 }
 
 static enum ksqlc
-ksqlsrv_result_text(struct ksql *p)
+ksqlsrv_result_str(struct ksql *p)
 {
 	enum ksqlc	 c, cc;
 	struct ksqlstmt	*stmt;
@@ -1041,7 +884,7 @@ ksqlsrv_result_text(struct ksql *p)
 	if (KSQL_OK != (c = ksql_readptr(p, &stmt)) ||
 	    KSQL_OK != (c = ksql_readsz(p, &col)))
 		return c;
-	c = ksql_result_text(stmt, &val, col);
+	c = ksql_result_str(stmt, &val, col);
 	if (KSQL_OK != (cc = ksql_writecode(p, c)))
 		return cc;
 	else if (KSQL_OK != c)
@@ -1050,8 +893,6 @@ ksqlsrv_result_text(struct ksql *p)
 	/* Check code *before* writing result. */
 	return ksql_writestr(p, val);
 }
-#endif
-
 
 static enum ksqlc
 ksqlsrv_stmt_int(struct ksql *p)
@@ -1314,11 +1155,12 @@ ksql_alloc_child(const struct ksqlcfg *cfg,
 		case (KSQLOP_OPEN):
 			c = ksqlsrv_open(p);
 			break;
-#if 0
 		case (KSQLOP_RESULT_INT):
 			c = ksqlsrv_result_int(p);
 			break;
-#endif
+		case (KSQLOP_RESULT_STR):
+			c = ksqlsrv_result_str(p);
+			break;
 		case (KSQLOP_ROLE):
 			c = ksqlsrv_role(p);
 			break;
@@ -2124,117 +1966,6 @@ again:
 	return(KSQL_OK);
 }
 
-enum ksqlc
-ksql_bind_zblob(struct ksqlstmt *stmt, size_t pos, size_t valsz)
-{
-	int	 rc;
-
-	if (KSQLSRV_ISPARENT(stmt->sql))
-		return(ksql_writebound(stmt, 
-			KSQLOP_BIND_ZBLOB, pos, NULL, valsz));
-	if (pos >= stmt->bcols)
-		return(ksql_verr(stmt->sql, KSQL_BINDCOL, 
-			"parameter index %zu exceeds maximum "
-			"index %zu", pos, stmt->bcols - 1));
-	rc = sqlite3_bind_zeroblob(stmt->stmt, pos + 1, valsz);
-	if (SQLITE_OK == rc)
-		return(KSQL_OK);
-	return(ksql_dberr(stmt->sql));
-}
-
-enum ksqlc
-ksql_bind_blob(struct ksqlstmt *stmt, 
-	size_t pos, const void *val, size_t valsz)
-{
-	int	rc;
-
-	if (KSQLSRV_ISPARENT(stmt->sql))
-		return(ksql_writebound(stmt, 
-			KSQLOP_BIND_BLOB, pos, val, valsz));
-
-	if (pos >= stmt->bcols)
-		return(ksql_verr(stmt->sql, KSQL_BINDCOL, 
-			"parameter index %zu exceeds maximum "
-			"index %zu", pos, stmt->bcols - 1));
-	rc = sqlite3_bind_blob
-		(stmt->stmt, pos + 1, val, valsz, SQLITE_TRANSIENT);
-	if (SQLITE_OK == rc)
-		return(KSQL_OK);
-	return(ksql_dberr(stmt->sql));
-}
-
-enum ksqlc
-ksql_bind_str(struct ksqlstmt *stmt, size_t pos, const char *val)
-{
-	int	 rc;
-
-	if (KSQLSRV_ISPARENT(stmt->sql))
-		return(ksql_writebound(stmt, 
-			KSQLOP_BIND_TEXT, pos, val, 0));
-
-	if (pos >= stmt->bcols)
-		return(ksql_verr(stmt->sql, KSQL_BINDCOL, 
-			"parameter index %zu exceeds maximum "
-			"index %zu", pos, stmt->bcols - 1));
-	rc = sqlite3_bind_text
-		(stmt->stmt, pos + 1, val, -1, SQLITE_TRANSIENT);
-	if (SQLITE_OK == rc)
-		return(KSQL_OK);
-	return(ksql_dberr(stmt->sql));
-}
-
-enum ksqlc
-ksql_bind_double(struct ksqlstmt *stmt, size_t pos, double val)
-{
-	int	 rc;
-
-	if (KSQLSRV_ISPARENT(stmt->sql))
-		return(ksql_writebound(stmt, 
-			KSQLOP_BIND_DOUBLE, pos, 
-			&val, sizeof(double)));
-	if (pos >= stmt->bcols)
-		return(ksql_verr(stmt->sql, KSQL_BINDCOL, 
-			"parameter index %zu exceeds maximum "
-			"index %zu", pos, stmt->bcols - 1));
-	rc = sqlite3_bind_double(stmt->stmt, pos + 1, val);
-	if (SQLITE_OK == rc)
-		return(KSQL_OK);
-	return(ksql_dberr(stmt->sql));
-}
-
-enum ksqlc
-ksql_bind_null(struct ksqlstmt *stmt, size_t pos)
-{
-
-	if (KSQLSRV_ISPARENT(stmt->sql))
-		return(ksql_writebound(stmt, 
-			KSQLOP_BIND_NULL, pos, NULL, 0));
-	if (pos >= stmt->bcols)
-		return(ksql_verr(stmt->sql, KSQL_BINDCOL, 
-			"parameter index %zu exceeds maximum "
-			"index %zu", pos, stmt->bcols - 1));
-	if (SQLITE_OK == sqlite3_bind_null(stmt->stmt, pos + 1))
-		return(KSQL_OK);
-	return(ksql_dberr(stmt->sql));
-}
-
-enum ksqlc
-ksql_bind_int(struct ksqlstmt *stmt, size_t pos, int64_t val)
-{
-
-	if (KSQLSRV_ISPARENT(stmt->sql))
-		return(ksql_writebound(stmt, 
-			KSQLOP_BIND_INT, pos, 
-			&val, sizeof(int64_t)));
-	if (pos >= stmt->bcols)
-		return(ksql_verr(stmt->sql, KSQL_BINDCOL, 
-			"parameter index %zu exceeds maximum "
-			"index %zu", pos, stmt->bcols - 1));
-	if (SQLITE_OK == sqlite3_bind_int64(stmt->stmt, pos + 1, val))
-		return(KSQL_OK);
-	return(ksql_dberr(stmt->sql));
-}
-
 static enum ksqlc
 ksql_trans_close_inner(struct ksql *p, size_t mode, size_t id)
 {
@@ -2391,7 +2122,6 @@ ksql_lastid(struct ksql *p, int64_t *id)
 	return(KSQL_OK);
 }
 
-#if 0
 /*
  * Write the full message required for a ksql_result_xxx function when in
  * the parent of a parent-child daemon scenario.
@@ -2418,7 +2148,6 @@ ksql_readres(struct ksqlstmt *stmt, enum ksqlop op,
 
 	return KSQL_OK;
 }
-#endif
 
 /*
  * Write the full message required for a ksql_stmt_xxx function when in
@@ -2542,7 +2271,6 @@ ksql_stmt_int(struct ksqlstmt *stmt, size_t col)
 		col, &val, sizeof(int64_t)) ? val : 0);
 }
 
-#if 0
 /*
  * Make sure the result at column "col" is accessible to the current
  * statement.
@@ -2580,13 +2308,14 @@ ksql_result_int(struct ksqlstmt *stmt, int64_t *p, size_t col)
 enum ksqlc
 ksql_result_str(struct ksqlstmt *stmt, const char **p, size_t col)
 {
-	char		*cp;
+	char		*cp = NULL;
 	size_t		 sz;
 	struct kcache	*cache;
-	enum ksqlc	 c, cc;
+	enum ksqlc	 c;
+
+	*p = NULL;
 
 	if ( ! KSQLSRV_ISPARENT(stmt->sql)) {
-		*p = NULL;
 		if (KSQL_OK == (c = ksql_result_check(stmt, col))) {
 			*p = sqlite3_column_text(stmt->stmt, col);
 			if (NULL == *p)
@@ -2601,36 +2330,27 @@ ksql_result_str(struct ksqlstmt *stmt, const char **p, size_t col)
 	if (KSQL_OK != c)
 		return c;
 
-	assert(sz > 0);
-
-	if (NULL == (cp = malloc(sz)))
-		return ksql_err(stmt->sql, KSQL_MEM, NULL);
-
-	cp[sz - 1] = '\0';
-
-	/* 
-	 * If we have a one-length string, it's empty so don't pass into
-	 * the readbuf function (it will assert).
-	 */
-
-	if (sz > 1 &&
-	    KSQL_OK != ksql_readbuf(stmt->sql, cp, sz - 1, 0)) {
-		free(cp);
-		return(NULL);
+	if (sz > 0) {
+		if (NULL == (cp = malloc(sz)))
+			return ksql_err(stmt->sql, KSQL_MEM, NULL);
+		cp[sz - 1] = '\0';
+		c = ksql_readbuf(stmt->sql, cp, sz - 1, 0);
+		if (KSQL_OK != c) {
+			free(cp);
+			return c;
+		}
 	}
-
-	/* Put into our pointer cache. */
 
 	if (NULL == (cache = calloc(1, sizeof(struct kcache)))) {
-		ksql_err(stmt->sql, KSQL_MEM, strerror(ENOMEM));
 		free(cp);
-		return(NULL);
+		return ksql_err(stmt->sql, KSQL_MEM, NULL);
 	}
+
 	TAILQ_INSERT_TAIL(&stmt->cache, cache, entries);
 	cache->s = cp;
-	return(cache->s);
+	*p = cache->s;
+	return KSQL_OK;
 }
-#endif
 
 const char *
 ksql_stmt_str(struct ksqlstmt *stmt, size_t col)

@@ -70,7 +70,9 @@ MANS	 = ksql.3 \
 	   ksql_trans_open.3 \
 	   ksql_untrace.3
 SRCS	 = $(MANS) \
+	   bind.c \
 	   compats.c \
+	   extern.h \
 	   ksql.c \
 	   ksql.h \
 	   tests.c \
@@ -90,10 +92,12 @@ test.db: test.sql
 	rm -f $@
 	sqlite3 $@ < test.sql 
 
-libksql.a: ksql.o compats.o
-	$(AR) rs $@ ksql.o compats.o
+libksql.a: ksql.o bind.o compats.o
+	$(AR) rs $@ ksql.o bind.o compats.o
 
-compats.o ksql.o test: config.h
+compats.o ksql.o bind.o test: config.h
+
+ksql.c bind.o: extern.h
 
 www: $(HTMLS) index.html ksql.svg ksql.tar.gz atom.xml
 
@@ -110,7 +114,7 @@ ksql.tar.gz:
 	( cd .dist && tar zvcf ../$@ . )
 	rm -rf .dist
 
-ksql.o: ksql.h
+ksql.o bind.o: ksql.h
 
 install: libksql.a
 	mkdir -p $(DESTDIR)$(LIBDIR)
@@ -121,7 +125,7 @@ install: libksql.a
 	$(INSTALL_DATA) $(MANS) $(DESTDIR)$(MANDIR)/man3
 
 clean:
-	rm -f libksql.a compats.o ksql.o test test.db
+	rm -f libksql.a compats.o ksql.o bind.o test test.db
 	rm -f $(HTMLS) $(XMLS) index.html atom.xml ksql.tar.gz ksql.svg
 
 distclean: clean
