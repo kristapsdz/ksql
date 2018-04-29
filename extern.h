@@ -130,8 +130,12 @@ enum ksqlc	 ksql_readsz(struct ksql *, size_t *);
 
 enum ksqlc	 ksql_writebound(struct ksqlstmt *, enum ksqlop, size_t, const void *, size_t);
 enum ksqlc	 ksql_writecode(struct ksql *, enum ksqlc);
+enum ksqlc	 ksql_writeop(struct ksql *, enum ksqlop);
+enum ksqlc	 ksql_writeptr(struct ksql *, const struct ksqlstmt *);
+enum ksqlc	 ksql_writesz(struct ksql *, size_t);
 
 enum ksqlc	 ksqlsrv_bind(struct ksql *, enum ksqlop);
+enum ksqlc	 ksqlsrv_stmt_alloc(struct ksql *);
 
 
 __END_DECLS

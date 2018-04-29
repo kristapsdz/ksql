@@ -75,10 +75,16 @@ SRCS	 = $(MANS) \
 	   extern.h \
 	   ksql.c \
 	   ksql.h \
+	   stmt.c \
 	   tests.c \
 	   test.c \
 	   test.sql \
+	   trace.c \
 	   Makefile
+OBJS	 = bind.o \
+	   ksql.o \
+	   stmt.o \
+	   trace.o
 
 CFLAGS   += -I/usr/local/include
 LDFLAGS	 += -L/usr/local/lib
@@ -92,12 +98,12 @@ test.db: test.sql
 	rm -f $@
 	sqlite3 $@ < test.sql 
 
-libksql.a: ksql.o bind.o compats.o
-	$(AR) rs $@ ksql.o bind.o compats.o
+libksql.a: $(OBJS) compats.o
+	$(AR) rs $@ $(OBJS) compats.o
 
-compats.o ksql.o bind.o test: config.h
+compats.o $(OBJS) test: config.h
 
-ksql.c bind.o: extern.h
+$(OBJS): extern.h ksql.h
 
 www: $(HTMLS) index.html ksql.svg ksql.tar.gz atom.xml
 
@@ -114,8 +120,6 @@ ksql.tar.gz:
 	( cd .dist && tar zvcf ../$@ . )
 	rm -rf .dist
 
-ksql.o bind.o: ksql.h
-
 install: libksql.a
 	mkdir -p $(DESTDIR)$(LIBDIR)
 	mkdir -p $(DESTDIR)$(INCLUDEDIR)
@@ -125,7 +129,7 @@ install: libksql.a
 	$(INSTALL_DATA) $(MANS) $(DESTDIR)$(MANDIR)/man3
 
 clean:
-	rm -f libksql.a compats.o ksql.o bind.o test test.db
+	rm -f libksql.a compats.o $(OBJS) test test.db
 	rm -f $(HTMLS) $(XMLS) index.html atom.xml ksql.tar.gz ksql.svg
 
 distclean: clean
