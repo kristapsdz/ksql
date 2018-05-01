@@ -37,8 +37,10 @@ enum	ksqlop {
 	KSQLOP_EXEC, /* ksql_exec */
 	KSQLOP_LASTID, /* ksql_lastid */
 	KSQLOP_OPEN, /* ksql_open */
+	KSQLOP_RESULT_BYTES, /* ksql_result_bytes */
 	KSQLOP_RESULT_DOUBLE, /* ksql_result_double */
 	KSQLOP_RESULT_INT, /* ksql_result_int */
+	KSQLOP_RESULT_ISNULL, /* ksql_result_isnull */
 	KSQLOP_RESULT_STR, /* ksql_result_str */
 	KSQLOP_ROLE, /* ksql_role */
 	KSQLOP_STMT_ALLOC, /* ksql_stmt_alloc */
@@ -141,8 +143,10 @@ enum ksqlc	 ksql_writestr(struct ksql *, const char *);
 enum ksqlc	 ksql_writesz(struct ksql *, size_t);
 
 enum ksqlc	 ksqlsrv_bind(struct ksql *, enum ksqlop);
+enum ksqlc	 ksqlsrv_result_bytes(struct ksql *);
 enum ksqlc	 ksqlsrv_result_double(struct ksql *);
 enum ksqlc	 ksqlsrv_result_int(struct ksql *);
+enum ksqlc	 ksqlsrv_result_isnull(struct ksql *);
 enum ksqlc	 ksqlsrv_result_str(struct ksql *);
 enum ksqlc	 ksqlsrv_stmt_alloc(struct ksql *);
 enum ksqlc	 ksqlsrv_stmt_bytes(struct ksql *);
