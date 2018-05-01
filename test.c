@@ -42,9 +42,12 @@ main(void)
 	size_t		 i;
 	struct ksqlstmt	*stmt;
 	char		 buf[64];
-	const char	*cp;
+	const char	*valstr, *valstr2;
+	size_t	 	 valblobsz, valblobsz2;
+	const void	*valblob, *valblob2;
+	double		 valdouble, valdouble2;
 	uint32_t	 val;
-	int64_t		 id;
+	int64_t		 id, valint, valint2;
 	const int	 stmts0[] = { 1, 1 };
 	const int	 stmts1[] = { 1, 1 };
 	const int	 stmts2[] = { 1, 1 };
@@ -185,25 +188,45 @@ main(void)
 
 	i = 0;
 	while (KSQL_ROW == ksql_stmt_step(stmt)) {
-		printf("Step (%zu:1): %" PRId64 "\n", i,
-			ksql_stmt_int(stmt, 0));
-		cp = ksql_stmt_str(stmt, 1);
-		printf("Step (%zu:2): %s\n", i,
-			NULL == cp ? "(null)" : cp);
-		cp = ksql_stmt_blob(stmt, 2);
-		printf("Step (%zu:3): [%s] (%zu)\n", i,
-			NULL == cp ? "(null)" : cp,
-			ksql_stmt_bytes(stmt, 2));
-		printf("Step (%zu:4): %f\n", i,
-			ksql_stmt_double(stmt, 3));
-		printf("Step (%zu:5): %" PRId64 "\n", i,
-			ksql_stmt_int(stmt, 4));
-#if 0
-		if (KSQL_OK != ksql_result_int(stmt, &res, 0))
+		valint = ksql_stmt_int(stmt, 0);
+		printf("Step (%zu:1): %" PRId64 "\n", i, valint);
+		if (KSQL_OK != ksql_result_int(stmt, &valint2, 0))
 			errx(EXIT_FAILURE, "ksql_result_int");
-		if (res != ksql_stmt_int(stmt, 0))
-			errx(EXIT_FAILURE, "ksql_result_int (inequality: %" PRId64 " != %" PRId64 ")", res, ksql_stmt_int(stmt, 0));
-#endif
+		if (valint != valint2)
+			errx(EXIT_FAILURE, "ksql_result_int inequality");
+
+		valstr = ksql_stmt_str(stmt, 1);
+		printf("Step (%zu:2): %s\n", i,
+			NULL == valstr ? "(null)" : valstr);
+		if (KSQL_OK != ksql_result_str(stmt, &valstr2, 1))
+			errx(EXIT_FAILURE, "ksql_result_str");
+		if ((NULL == valstr && NULL != valstr2) ||
+		    (NULL != valstr && NULL == valstr2) ||
+		    (NULL != valstr && strcmp(valstr, valstr2)))
+			errx(EXIT_FAILURE, "ksql_result_str inequality");
+
+		valblob = ksql_stmt_blob(stmt, 2);
+		valblobsz = ksql_stmt_bytes(stmt, 2);
+		if (NULL == valblob) 
+			printf("Step (%zu:3): null\n", i);
+		else
+			printf("Step (%zu:3): [%.*s] (%zu)\n", i,
+				(int)valblobsz, valblob, valblobsz);
+
+		if (KSQL_OK != ksql_result_blob(stmt, &valblob2, &valblobsz2, 2))
+			errx(EXIT_FAILURE, "ksql_result_blob");
+		if ((NULL == valblob && NULL != valblob2) ||
+		    (NULL != valblob && NULL == valblob2) ||
+		    (valblobsz != valblobsz2) ||
+		    (NULL != valblob && memcmp(valblob, valblob2, valblobsz2)))
+			errx(EXIT_FAILURE, "ksql_result_blob inequality");
+
+		valdouble = ksql_stmt_double(stmt, 3);
+		printf("Step (%zu:4): %f\n", i, valdouble);
+		if (KSQL_OK != ksql_result_double(stmt, &valdouble2, 3))
+			errx(EXIT_FAILURE, "ksql_result_double");
+		if (valdouble != valdouble2)
+			errx(EXIT_FAILURE, "ksql_result_double inequality");
 		i++;
 	}
 
