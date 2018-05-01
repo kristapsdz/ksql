@@ -73,6 +73,7 @@ SRCS	 = $(MANS) \
 	   bind.c \
 	   compats.c \
 	   extern.h \
+	   log.c \
 	   ksql.c \
 	   ksql.h \
 	   stmt.c \
@@ -83,6 +84,7 @@ SRCS	 = $(MANS) \
 	   Makefile
 OBJS	 = bind.o \
 	   ksql.o \
+	   log.o \
 	   stmt.o \
 	   trace.o
 

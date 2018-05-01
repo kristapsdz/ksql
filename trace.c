@@ -16,27 +16,10 @@
  */
 #include "config.h"
 
-#include <sys/param.h>
 #include <sys/queue.h>
-#include <sys/socket.h>
-#include <sys/wait.h>
 
 #include <assert.h>
-#if HAVE_ERR
-# include <err.h>
-#endif
-#include <errno.h>
-#if ! HAVE_SOCK_NONBLOCK
-# include <fcntl.h>
-#endif
-#include <poll.h>
-#include <setjmp.h>
-#include <signal.h>
-#include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 
 #include <sqlite3.h>
 

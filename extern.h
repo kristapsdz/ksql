@@ -120,7 +120,10 @@ __BEGIN_DECLS
 enum ksqlc	 ksql_err(struct ksql *, enum ksqlc, const char *);
 void		 ksql_err_noexit(struct ksql *, enum ksqlc, const char *);
 enum ksqlc	 ksql_dberr(struct ksql *);
+void		 ksql_dberr_noexit(struct ksql *);
 enum ksqlc	 ksql_verr(struct ksql *, enum ksqlc, const char *, ...);
+
+void	 	 ksqlitevmsg(const struct ksql *, enum ksqlc, const char *, ...);
 
 enum ksqlc	 ksql_readbuf(struct ksql *, void *, size_t, int);
 enum ksqlc	 ksql_readcode(struct ksql *, enum ksqlc *);

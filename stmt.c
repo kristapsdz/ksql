@@ -16,27 +16,10 @@
  */
 #include "config.h"
 
-#include <sys/param.h>
 #include <sys/queue.h>
-#include <sys/socket.h>
-#include <sys/wait.h>
 
 #include <assert.h>
-#if HAVE_ERR
-# include <err.h>
-#endif
-#include <errno.h>
-#if ! HAVE_SOCK_NONBLOCK
-# include <fcntl.h>
-#endif
-#include <poll.h>
-#include <setjmp.h>
-#include <signal.h>
-#include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 
 #include <sqlite3.h>
 
@@ -69,47 +52,6 @@ ksql_writecol(struct ksqlstmt *stmt, enum ksqlop op,
 	return(1);
 }
 
-
-/*
- * TODO: use a string buffer for "sql".
- */
-enum ksqlc
-ksqlsrv_stmt_alloc(struct ksql *p)
-{
-	struct ksqlstmt	*ss;
-	char		*sql = NULL;
-	size_t		 id;
-	enum ksqlc	 c, cc;
-
-	if (KSQL_OK != (c = ksql_readstr(p, &sql)))
-		return(c);
-	assert(NULL != sql);
-
-	if (KSQL_OK != (c = ksql_readsz(p, &id))) {
-		free(sql);
-		return(c);
-	}
-
-	/* 
-	 * Run operation first, ignoring "ss".
-	 * Once this completes, a valid "ss" is attached to the
-	 * database, so we don't need to manage the pointer.
-	 */
-
-	cc = ksql_stmt_alloc(p, &ss, sql, id);
-	free(sql);
-
-	if (KSQL_OK != (c = ksql_writecode(p, cc)))
-		return(c);
-	if (KSQL_OK != cc)
-		return(cc);
-
-	/* We now know that "ss" is non-NULL. */
-
-	assert(NULL != ss);
-	return(ksql_writeptr(p, ss));
-}
-
 const void *
 ksql_stmt_blob(struct ksqlstmt *stmt, size_t col)
 {
@@ -140,7 +82,7 @@ ksql_stmt_blob(struct ksqlstmt *stmt, size_t col)
 		return(NULL);
 
 	if (NULL == (cp = malloc(sz))) {
-		ksql_err(stmt->sql, KSQL_MEM, strerror(ENOMEM));
+		ksql_err(stmt->sql, KSQL_MEM, NULL);
 		return(NULL);
 	}
 
@@ -152,7 +94,7 @@ ksql_stmt_blob(struct ksqlstmt *stmt, size_t col)
 	/* Put into our pointer cache. */
 
 	if (NULL == (c = calloc(1, sizeof(struct kcache)))) {
-		ksql_err(stmt->sql, KSQL_MEM, strerror(ENOMEM));
+		ksql_err(stmt->sql, KSQL_MEM, NULL);
 		free(cp);
 		return(NULL);
 	}
@@ -242,7 +184,7 @@ ksql_stmt_str(struct ksqlstmt *stmt, size_t col)
 	/* Allocate and nil-terminate, then fill. */
 
 	if (NULL == (cp = malloc(sz))) {
-		ksql_err(stmt->sql, KSQL_MEM, strerror(ENOMEM));
+		ksql_err(stmt->sql, KSQL_MEM, NULL);
 		return(NULL);
 	}
 	cp[sz - 1] = '\0';
@@ -261,7 +203,7 @@ ksql_stmt_str(struct ksqlstmt *stmt, size_t col)
 	/* Put into our pointer cache. */
 
 	if (NULL == (c = calloc(1, sizeof(struct kcache)))) {
-		ksql_err(stmt->sql, KSQL_MEM, strerror(ENOMEM));
+		ksql_err(stmt->sql, KSQL_MEM, NULL);
 		free(cp);
 		return(NULL);
 	}

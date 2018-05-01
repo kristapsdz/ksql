@@ -16,27 +16,10 @@
  */
 #include "config.h"
 
-#include <sys/param.h>
 #include <sys/queue.h>
-#include <sys/socket.h>
-#include <sys/wait.h>
 
 #include <assert.h>
-#if HAVE_ERR
-# include <err.h>
-#endif
-#include <errno.h>
-#if ! HAVE_SOCK_NONBLOCK
-# include <fcntl.h>
-#endif
-#include <poll.h>
-#include <setjmp.h>
-#include <signal.h>
-#include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 
 #include <sqlite3.h>
 
@@ -69,10 +52,8 @@ ksqlsrv_bind(struct ksql *p, enum ksqlop op)
 		if (KSQL_OK != (c = ksql_readsz(p, &bufsz)))
 			return(c);
 		/* FIXME: handle zero-length. */
-		if (NULL == (buf = malloc(bufsz))) {
-			buf = strerror(errno);
-			return(ksql_err(p, KSQL_MEM, buf));
-		}
+		if (NULL == (buf = malloc(bufsz)))
+			return(ksql_err(p, KSQL_MEM, NULL));
 		c = ksql_readbuf(p, buf, bufsz, 0);
 		if (KSQL_OK != c) {
 			free(buf);
