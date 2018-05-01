@@ -20,6 +20,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <sqlite3.h>
 
@@ -50,6 +51,136 @@ ksql_writecol(struct ksqlstmt *stmt, enum ksqlop op,
 		return(0);
 
 	return(1);
+}
+
+enum ksqlc
+ksqlsrv_stmt_bytes(struct ksql *p)
+{
+	enum ksqlc	 c;
+	struct ksqlstmt	*stmt;
+	size_t		 col;
+	size_t		 val;
+
+	if (KSQL_OK != (c = ksql_readptr(p, &stmt)))
+		return(c);
+	if (KSQL_OK != (c = ksql_readsz(p, &col)))
+		return(c);
+	val = ksql_stmt_bytes(stmt, col);
+	return(ksql_writebuf(p, &val, sizeof(size_t)));
+}
+
+enum ksqlc
+ksqlsrv_stmt_double(struct ksql *p)
+{
+	enum ksqlc	 c;
+	struct ksqlstmt	*stmt;
+	size_t		 col;
+	double		 val;
+
+	if (KSQL_OK != (c = ksql_readptr(p, &stmt)))
+		return(c);
+	if (KSQL_OK != (c = ksql_readsz(p, &col)))
+		return(c);
+	val = ksql_stmt_double(stmt, col);
+	return(ksql_writebuf(p, &val, sizeof(double)));
+}
+
+enum ksqlc
+ksqlsrv_stmt_isnull(struct ksql *p)
+{
+	enum ksqlc	 c;
+	struct ksqlstmt	*stmt;
+	size_t		 col;
+	int		 val;
+
+	if (KSQL_OK != (c = ksql_readptr(p, &stmt)))
+		return(c);
+	if (KSQL_OK != (c = ksql_readsz(p, &col)))
+		return(c);
+	val = ksql_stmt_isnull(stmt, col);
+	return(ksql_writebuf(p, &val, sizeof(int)));
+}
+
+enum ksqlc
+ksqlsrv_stmt_int(struct ksql *p)
+{
+	enum ksqlc	 c;
+	struct ksqlstmt	*stmt;
+	size_t		 col;
+	int64_t		 val;
+
+	if (KSQL_OK != (c = ksql_readptr(p, &stmt)))
+		return(c);
+	if (KSQL_OK != (c = ksql_readsz(p, &col)))
+		return(c);
+	val = ksql_stmt_int(stmt, col);
+	return(ksql_writebuf(p, &val, sizeof(int64_t)));
+}
+
+enum ksqlc
+ksqlsrv_stmt_blob(struct ksql *p)
+{
+	enum ksqlc	 c;
+	struct ksqlstmt	*stmt;
+	size_t		 col, sz;
+	const char	*val;
+
+	if (KSQL_OK != (c = ksql_readptr(p, &stmt)))
+		return(c);
+	if (KSQL_OK != (c = ksql_readsz(p, &col)))
+		return(c);
+
+	/* Get both the size and pointer first. */
+
+	sz = ksql_stmt_bytes(stmt, col);
+	val = ksql_stmt_str(stmt, col);
+
+	/* 
+	 * If val is NULL, SQLite couldn't allocate OR the size of the
+	 * buffer was zero.
+	 * We want to handle both conditions, so construe the number of
+	 * bytes as zero either way and don't transmit.
+	 */
+
+	if (NULL == val)
+		sz = 0;
+	if (KSQL_OK != (c = ksql_writesz(p, sz)))
+		return(c);
+	if (0 != sz)
+		c = ksql_writebuf(p, val, sz);
+	return(c);
+}
+
+enum ksqlc
+ksqlsrv_stmt_str(struct ksql *p)
+{
+	enum ksqlc	 c;
+	struct ksqlstmt	*stmt;
+	size_t		 col, sz;
+	const char	*val;
+
+	if (KSQL_OK != (c = ksql_readptr(p, &stmt)))
+		return(c);
+	if (KSQL_OK != (c = ksql_readsz(p, &col)))
+		return(c);
+
+	/*
+	 * SQLite returns NULL on allocation failure.
+	 * So we do something special here.
+	 * Send the string *buffer* length, which is always non-zero to
+	 * account for the nil terminator.
+	 * If that's zero, then we know that we have a NULL.
+	 * If that's one, then it's a zero-length string.
+	 */
+
+	val = ksql_stmt_str(stmt, col);
+	sz = NULL == val ? 0 : strlen(val) + 1;
+
+	if (KSQL_OK != (c = ksql_writesz(p, sz)))
+		return(c);
+	if (sz > 1)
+		c = ksql_writebuf(p, val, sz - 1);
+	return(c);
 }
 
 const void *

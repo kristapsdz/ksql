@@ -74,8 +74,6 @@ static	volatile sig_atomic_t dojmp;
  */
 static enum ksqlc ksql_free_inner(struct ksql *, int);
 static enum ksqlc ksql_step_inner(struct ksqlstmt *, size_t);
-static enum ksqlc ksql_trans_open_inner(struct ksql *, size_t, size_t);
-static enum ksqlc ksql_trans_close_inner(struct ksql *, size_t, size_t);
 
 /*
  * This is called within an atexit(3) handler for connections specified
@@ -329,7 +327,7 @@ ksql_readstr(struct ksql *p, char **buf)
  * On success (all "sz" bytes written), return KSQL_OK.
  * Otherwise, invoke ksql_err() with the given error code.
  */
-static enum ksqlc
+enum ksqlc
 ksql_writebuf(struct ksql *p, const void *buf, size_t sz)
 {
 	size_t	 	 wsz = 0;
@@ -387,15 +385,15 @@ ksql_writebuf(struct ksql *p, const void *buf, size_t sz)
  * Write a nil-terminated string "str" to the connected process in "p".
  * See ksql_writebuf().
  */
-static enum ksqlc
+enum ksqlc
 ksql_writestr(struct ksql *p, const char *str)
 {
 	enum ksqlc	 c;
 	size_t		 sz = strlen(str);
 
 	if (KSQL_OK != (c = ksql_writebuf(p, &sz, sizeof(size_t))))
-		return(c);
-	return(ksql_writebuf(p, str, sz));
+		return c;
+	return ksql_writebuf(p, str, sz);
 }
 
 /*
@@ -600,206 +598,6 @@ ksqlsrv_stmt_free(struct ksql *p)
 	return(ksql_stmt_free(ss));
 }
 
-static enum ksqlc
-ksqlsrv_stmt_bytes(struct ksql *p)
-{
-	enum ksqlc	 c;
-	struct ksqlstmt	*stmt;
-	size_t		 col;
-	size_t		 val;
-
-	if (KSQL_OK != (c = ksql_readptr(p, &stmt)))
-		return(c);
-	if (KSQL_OK != (c = ksql_readsz(p, &col)))
-		return(c);
-	val = ksql_stmt_bytes(stmt, col);
-	return(ksql_writebuf(p, &val, sizeof(size_t)));
-}
-
-static enum ksqlc
-ksqlsrv_stmt_double(struct ksql *p)
-{
-	enum ksqlc	 c;
-	struct ksqlstmt	*stmt;
-	size_t		 col;
-	double		 val;
-
-	if (KSQL_OK != (c = ksql_readptr(p, &stmt)))
-		return(c);
-	if (KSQL_OK != (c = ksql_readsz(p, &col)))
-		return(c);
-	val = ksql_stmt_double(stmt, col);
-	return(ksql_writebuf(p, &val, sizeof(double)));
-}
-
-static enum ksqlc
-ksqlsrv_stmt_isnull(struct ksql *p)
-{
-	enum ksqlc	 c;
-	struct ksqlstmt	*stmt;
-	size_t		 col;
-	int		 val;
-
-	if (KSQL_OK != (c = ksql_readptr(p, &stmt)))
-		return(c);
-	if (KSQL_OK != (c = ksql_readsz(p, &col)))
-		return(c);
-	val = ksql_stmt_isnull(stmt, col);
-	return(ksql_writebuf(p, &val, sizeof(int)));
-}
-
-static enum ksqlc
-ksqlsrv_result_int(struct ksql *p)
-{
-	enum ksqlc	 c, cc;
-	struct ksqlstmt	*stmt;
-	size_t		 col;
-	int64_t		 val;
-
-	if (KSQL_OK != (c = ksql_readptr(p, &stmt)) ||
-	    KSQL_OK != (c = ksql_readsz(p, &col)))
-		return c;
-	c = ksql_result_int(stmt, &val, col);
-	if (KSQL_OK != (cc = ksql_writecode(p, c)))
-		return cc;
-	else if (KSQL_OK != c)
-		return c;
-
-	/* Check code *before* writing result. */
-	return ksql_writebuf(p, &val, sizeof(int64_t));
-}
-
-static enum ksqlc
-ksqlsrv_result_str(struct ksql *p)
-{
-	enum ksqlc	 c, cc;
-	struct ksqlstmt	*stmt;
-	size_t		 col;
-	const char	*val;
-
-	if (KSQL_OK != (c = ksql_readptr(p, &stmt)) ||
-	    KSQL_OK != (c = ksql_readsz(p, &col)))
-		return c;
-	c = ksql_result_str(stmt, &val, col);
-	if (KSQL_OK != (cc = ksql_writecode(p, c)))
-		return cc;
-	else if (KSQL_OK != c)
-		return c;
-
-	/* Check code *before* writing result. */
-	return ksql_writestr(p, val);
-}
-
-static enum ksqlc
-ksqlsrv_stmt_int(struct ksql *p)
-{
-	enum ksqlc	 c;
-	struct ksqlstmt	*stmt;
-	size_t		 col;
-	int64_t		 val;
-
-	if (KSQL_OK != (c = ksql_readptr(p, &stmt)))
-		return(c);
-	if (KSQL_OK != (c = ksql_readsz(p, &col)))
-		return(c);
-	val = ksql_stmt_int(stmt, col);
-	return(ksql_writebuf(p, &val, sizeof(int64_t)));
-}
-
-static enum ksqlc
-ksqlsrv_stmt_blob(struct ksql *p)
-{
-	enum ksqlc	 c;
-	struct ksqlstmt	*stmt;
-	size_t		 col, sz;
-	const char	*val;
-
-	if (KSQL_OK != (c = ksql_readptr(p, &stmt)))
-		return(c);
-	if (KSQL_OK != (c = ksql_readsz(p, &col)))
-		return(c);
-
-	/* Get both the size and pointer first. */
-
-	sz = ksql_stmt_bytes(stmt, col);
-	val = ksql_stmt_str(stmt, col);
-
-	/* 
-	 * If val is NULL, SQLite couldn't allocate OR the size of the
-	 * buffer was zero.
-	 * We want to handle both conditions, so construe the number of
-	 * bytes as zero either way and don't transmit.
-	 */
-
-	if (NULL == val)
-		sz = 0;
-	if (KSQL_OK != (c = ksql_writesz(p, sz)))
-		return(c);
-	if (0 != sz)
-		c = ksql_writebuf(p, val, sz);
-	return(c);
-}
-
-static enum ksqlc
-ksqlsrv_stmt_str(struct ksql *p)
-{
-	enum ksqlc	 c;
-	struct ksqlstmt	*stmt;
-	size_t		 col, sz;
-	const char	*val;
-
-	if (KSQL_OK != (c = ksql_readptr(p, &stmt)))
-		return(c);
-	if (KSQL_OK != (c = ksql_readsz(p, &col)))
-		return(c);
-
-	/*
-	 * SQLite returns NULL on allocation failure.
-	 * So we do something special here.
-	 * Send the string *buffer* length, which is always non-zero to
-	 * account for the nil terminator.
-	 * If that's zero, then we know that we have a NULL.
-	 * If that's one, then it's a zero-length string.
-	 */
-
-	val = ksql_stmt_str(stmt, col);
-	sz = NULL == val ? 0 : strlen(val) + 1;
-
-	if (KSQL_OK != (c = ksql_writesz(p, sz)))
-		return(c);
-	if (sz > 1)
-		c = ksql_writebuf(p, val, sz - 1);
-	return(c);
-}
-
-static enum ksqlc
-ksqlsrv_trans_close(struct ksql *p)
-{
-	enum ksqlc	 c, cc;
-	size_t		 type, id;
-
-	if (KSQL_OK != (c = ksql_readsz(p, &type)))
-		return(c);
-	if (KSQL_OK != (c = ksql_readsz(p, &id)))
-		return(c);
-	cc = ksql_trans_close_inner(p, type, id);
-	return(ksql_writecode(p, cc));
-}
-
-static enum ksqlc
-ksqlsrv_trans_open(struct ksql *p)
-{
-	enum ksqlc	 c, cc;
-	size_t		 type, id;
-
-	if (KSQL_OK != (c = ksql_readsz(p, &type)))
-		return(c);
-	if (KSQL_OK != (c = ksql_readsz(p, &id)))
-		return(c);
-	cc = ksql_trans_open_inner(p, type, id);
-	return(ksql_writecode(p, cc));
-}
-
 struct ksql *
 ksql_alloc_child(const struct ksqlcfg *cfg,
 	void (*cb)(void *), void *arg)
@@ -950,6 +748,9 @@ ksql_alloc_child(const struct ksqlcfg *cfg,
 			break;
 		case (KSQLOP_OPEN):
 			c = ksqlsrv_open(p);
+			break;
+		case (KSQLOP_RESULT_DOUBLE):
+			c = ksqlsrv_result_double(p);
 			break;
 		case (KSQLOP_RESULT_INT):
 			c = ksqlsrv_result_int(p);
@@ -1228,7 +1029,7 @@ ksql_free(struct ksql *p)
  * transactions) and as the eventual target for ksql_exec() in the child
  * process, or the caller of a non-split-process.
  */
-static enum ksqlc
+enum ksqlc
 ksql_exec_private(struct ksql *p, const char *sql)
 {
 	enum ksqlc	 c;
@@ -1802,133 +1603,6 @@ ksqlsrv_stmt_alloc(struct ksql *p)
 	return(ksql_writeptr(p, ss));
 }
 
-
-static enum ksqlc
-ksql_trans_close_inner(struct ksql *p, size_t mode, size_t id)
-{
-	enum ksqlc	 c, cc;
-	char	 	 buf[1024];
-
-	if (KSQLSRV_ISPARENT(p)) {
-		c = ksql_writeop(p, KSQLOP_TRANS_CLOSE);
-		if (KSQL_OK != c)
-			return(c);
-		if (KSQL_OK != (c = ksql_writesz(p, mode))) 
-			return(c);
-		if (KSQL_OK != (c = ksql_writesz(p, id)))
-			return(c);
-		if (KSQL_OK != (c = ksql_readcode(p, &cc)))
-			return(c);
-		return(cc);
-	}
-
-	if (NULL == p->db) 
-		return(ksql_err(p, KSQL_NOTOPEN, NULL));
-
-	if ( ! (KSQLFL_TRANS & p->flags)) {
-		snprintf(buf, sizeof(buf),
-			"transaction %zu not open", id);
-		return(ksql_err(p, KSQL_TRANS, buf));
-	} else if (id != p->trans) {
-		snprintf(buf, sizeof(buf),
-			"transaction %zu pending on close of %zu", 
-			p->trans, id);
-		return(ksql_err(p, KSQL_TRANS, buf));
-	}
-
-	c = mode ?
-		ksql_exec_private(p, "ROLLBACK TRANSACTION") :
-		ksql_exec_private(p, "COMMIT TRANSACTION");
-
-	/* Set this only if the exec succeeded.*/
-
-	if (KSQL_OK == c)
-		p->flags &= ~KSQLFL_TRANS;
-
-	return(c);
-}
-
-static enum ksqlc
-ksql_trans_open_inner(struct ksql *p, size_t mode, size_t id)
-{
-	enum ksqlc	 c, cc;
-	char		 buf[1024];
-
-	if (KSQLSRV_ISPARENT(p)) {
-		c = ksql_writeop(p, KSQLOP_TRANS_OPEN);
-		if (KSQL_OK != c)
-			return(c);
-		if (KSQL_OK != (c = ksql_writesz(p, mode))) 
-			return(c);
-		if (KSQL_OK != (c = ksql_writesz(p, id)))
-			return(c);
-		if (KSQL_OK != (c = ksql_readcode(p, &cc)))
-			return(c);
-		return(cc);
-	}
-
-	if (NULL == p->db) 
-		return(ksql_err(p, KSQL_NOTOPEN, NULL));
-
-	if (KSQLFL_TRANS & p->flags) {
-		snprintf(buf, sizeof(buf),
-			"transaction %zu still open", p->trans);
-		return(ksql_err(p, KSQL_TRANS, buf));
-	}
-
-	assert(mode <= 2);
-
-	if (2 == mode)
-		c = ksql_exec_private(p, "BEGIN EXCLUSIVE");
-	else if (1 == mode)
-		c = ksql_exec_private(p, "BEGIN IMMEDIATE");
-	else
-		c = ksql_exec_private(p, "BEGIN DEFERRED");
-
-	/* Set this only if the exec succeeded.*/
-
-	if (KSQL_OK == c) {
-		p->flags |= KSQLFL_TRANS;
-		p->trans = id;
-	}
-	return(c);
-}
-
-enum ksqlc
-ksql_trans_open(struct ksql *p, size_t id)
-{
-
-	return(ksql_trans_open_inner(p, 0, id));
-}
-
-enum ksqlc
-ksql_trans_exclopen(struct ksql *p, size_t id)
-{
-
-	return(ksql_trans_open_inner(p, 2, id));
-}
-
-enum ksqlc
-ksql_trans_singleopen(struct ksql *p, size_t id)
-{
-
-	return(ksql_trans_open_inner(p, 1, id));
-}
-
-enum ksqlc
-ksql_trans_commit(struct ksql *p, size_t id)
-{
-
-	return(ksql_trans_close_inner(p, 0, id));
-}
-
-enum ksqlc
-ksql_trans_rollback(struct ksql *p, size_t id)
-{
-
-	return(ksql_trans_close_inner(p, 1, id));
-}
-
 enum ksqlc
 ksql_lastid(struct ksql *p, int64_t *id)
 {
@@ -1957,112 +1631,4 @@ ksql_lastid(struct ksql *p, int64_t *id)
 		return(ksql_err(p, KSQL_NOTOPEN, NULL));
 	*id = sqlite3_last_insert_rowid(p->db);
 	return(KSQL_OK);
-}
-
-/*
- * Write the full message required for a ksql_result_xxx function when in
- * the parent of a parent-child daemon scenario.
- * This checks the return code of the child *before* trying to read the
- * result, so we never pass a bogus result from the child to the parent.
- */
-static enum ksqlc
-ksql_readres(struct ksqlstmt *stmt, enum ksqlop op, 
-	size_t col, void *buf, size_t bufsz)
-{
-	enum ksqlc	 c, code;
-
-	assert(KSQLSRV_ISPARENT(stmt->sql));
-
-	if (KSQL_OK != (c = ksql_writeop(stmt->sql, op)) ||
-	    KSQL_OK != (c = ksql_writeptr(stmt->sql, stmt->ptr)) ||
-	    KSQL_OK != (c = ksql_writesz(stmt->sql, col)) ||
-	    KSQL_OK != (c = ksql_readcode(stmt->sql, &code)))
-		return c;
-	if (KSQL_OK != code)
-		return c;
-	if (KSQL_OK != (c = ksql_readbuf(stmt->sql, buf, bufsz, 0)))
-		return c;
-
-	return KSQL_OK;
-}
-
-/*
- * Make sure the result at column "col" is accessible to the current
- * statement.
- * Returns KSQL_OK if it is or an error otherwise.
- */
-static enum ksqlc
-ksql_result_check(struct ksqlstmt *stmt, size_t col)
-{
-	enum ksqlc	 c = KSQL_OK;
-
-	if (col >= stmt->rcols) 
-		c = ksql_verr(stmt->sql, KSQL_RESULTCOL, 
-			"result index %zu exceeds maximum "
-			"index %zu", col, stmt->rcols - 1);
-
-	return c;
-}
-
-enum ksqlc
-ksql_result_int(struct ksqlstmt *stmt, int64_t *p, size_t col)
-{
-	enum ksqlc	 c;
-
-	if (KSQLSRV_ISPARENT(stmt->sql))
-		return ksql_readres(stmt, KSQLOP_RESULT_INT, 
-			col, p, sizeof(int64_t));
-
- 	*p = 0;
-	if (KSQL_OK == (c = ksql_result_check(stmt, col)))
-		*p = sqlite3_column_int64(stmt->stmt, col);
-
-	return c;
-}
-
-enum ksqlc
-ksql_result_str(struct ksqlstmt *stmt, const char **p, size_t col)
-{
-	char		*cp = NULL;
-	size_t		 sz;
-	struct kcache	*cache;
-	enum ksqlc	 c;
-
-	*p = NULL;
-
-	if ( ! KSQLSRV_ISPARENT(stmt->sql)) {
-		if (KSQL_OK == (c = ksql_result_check(stmt, col))) {
-			*p = sqlite3_column_text(stmt->stmt, col);
-			if (NULL == *p)
-				c = ksql_err(stmt->sql, KSQL_MEM, NULL);
-		}
-		return c;
-	}
-
-	c = ksql_readres
-		(stmt, KSQLOP_RESULT_STR, 
-		 col, &sz, sizeof(size_t));
-	if (KSQL_OK != c)
-		return c;
-
-	if (sz > 0) {
-		if (NULL == (cp = malloc(sz)))
-			return ksql_err(stmt->sql, KSQL_MEM, NULL);
-		cp[sz - 1] = '\0';
-		c = ksql_readbuf(stmt->sql, cp, sz - 1, 0);
-		if (KSQL_OK != c) {
-			free(cp);
-			return c;
-		}
-	}
-
-	if (NULL == (cache = calloc(1, sizeof(struct kcache)))) {
-		free(cp);
-		return ksql_err(stmt->sql, KSQL_MEM, NULL);
-	}
-
-	TAILQ_INSERT_TAIL(&stmt->cache, cache, entries);
-	cache->s = cp;
-	*p = cache->s;
-	return KSQL_OK;
 }
