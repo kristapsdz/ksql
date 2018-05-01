@@ -749,11 +749,20 @@ ksql_alloc_child(const struct ksqlcfg *cfg,
 		case (KSQLOP_OPEN):
 			c = ksqlsrv_open(p);
 			break;
+		case (KSQLOP_RESULT_BLOB):
+			c = ksqlsrv_result_blob(p);
+			break;
+		case (KSQLOP_RESULT_BYTES):
+			c = ksqlsrv_result_bytes(p);
+			break;
 		case (KSQLOP_RESULT_DOUBLE):
 			c = ksqlsrv_result_double(p);
 			break;
 		case (KSQLOP_RESULT_INT):
 			c = ksqlsrv_result_int(p);
+			break;
+		case (KSQLOP_RESULT_ISNULL):
+			c = ksqlsrv_result_isnull(p);
 			break;
 		case (KSQLOP_RESULT_STR):
 			c = ksqlsrv_result_str(p);

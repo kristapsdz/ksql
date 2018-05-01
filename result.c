@@ -73,6 +73,29 @@ ksql_readres(struct ksqlstmt *stmt, enum ksqlop op,
 }
 
 enum ksqlc
+ksqlsrv_result_blob(struct ksql *p)
+{
+	enum ksqlc	 c, cc;
+	struct ksqlstmt	*stmt;
+	size_t		 col, sz;
+	const void	*val;
+
+	if (KSQL_OK != (c = ksql_readptr(p, &stmt)) ||
+	    KSQL_OK != (c = ksql_readsz(p, &col)))
+		return c;
+	c = ksql_result_blob(stmt, &val, &sz, col);
+	if (KSQL_OK != (cc = ksql_writecode(p, c)))
+		return cc;
+	else if (KSQL_OK != c)
+		return c;
+
+	/* Check code *before* writing result. */
+	if (KSQL_OK != (c = ksql_writebuf(p, &sz, sizeof(size_t))))
+		return c;
+	return ksql_writebuf(p, val, sz);
+}
+
+enum ksqlc
 ksqlsrv_result_isnull(struct ksql *p)
 {
 	enum ksqlc	 c, cc;
@@ -285,5 +308,51 @@ ksql_result_str(struct ksqlstmt *stmt, const char **p, size_t col)
 	TAILQ_INSERT_TAIL(&stmt->cache, cache, entries);
 	cache->s = cp;
 	*p = cache->s;
+	return KSQL_OK;
+}
+
+enum ksqlc
+ksql_result_blob(struct ksqlstmt *stmt, 
+	const void **p, size_t *sz, size_t col)
+{
+	struct kcache	*cache;
+	void		*cp = NULL;
+	enum ksqlc	 c;
+
+	*p = NULL;
+	*sz = 0;
+
+	if ( ! KSQLSRV_ISPARENT(stmt->sql)) {
+		if (KSQL_OK != (c = ksql_result_check(stmt, col))) 
+			return c;
+		*sz = sqlite3_column_bytes(stmt->stmt, col);
+		*p = sqlite3_column_blob(stmt->stmt, col);
+		return KSQL_OK;
+	}
+
+	c = ksql_readres
+		(stmt, KSQLOP_RESULT_BLOB, 
+		 col, sz, sizeof(size_t));
+	if (KSQL_OK != c)
+		return c;
+
+	if (*sz > 0) {
+		if (NULL == (cp = malloc(*sz)))
+			return ksql_err(stmt->sql, KSQL_MEM, NULL);
+		c = ksql_readbuf(stmt->sql, cp, *sz, 0);
+		if (KSQL_OK != c) {
+			free(cp);
+			return c;
+		}
+	}
+
+	if (NULL == (cache = calloc(1, sizeof(struct kcache)))) {
+		free(cp);
+		return ksql_err(stmt->sql, KSQL_MEM, NULL);
+	}
+
+	TAILQ_INSERT_TAIL(&stmt->cache, cache, entries);
+	cache->s = cp;
+	*p = cp;
 	return KSQL_OK;
 }
