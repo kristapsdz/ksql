@@ -76,17 +76,21 @@ SRCS	 = $(MANS) \
 	   log.c \
 	   ksql.c \
 	   ksql.h \
+	   result.c \
 	   stmt.c \
 	   tests.c \
 	   test.c \
 	   test.sql \
 	   trace.c \
+	   trans.c \
 	   Makefile
 OBJS	 = bind.o \
 	   ksql.o \
 	   log.o \
+	   result.o \
 	   stmt.o \
-	   trace.o
+	   trace.o \
+	   trans.o
 
 CFLAGS   += -I/usr/local/include
 LDFLAGS	 += -L/usr/local/lib
