@@ -383,16 +383,21 @@ ksql_writebuf(struct ksql *p, const void *buf, size_t sz)
 
 /*
  * Write a nil-terminated string "str" to the connected process in "p".
+ * If NULL, this writes a zero-length string.
  * See ksql_writebuf().
  */
 enum ksqlc
 ksql_writestr(struct ksql *p, const char *str)
 {
 	enum ksqlc	 c;
-	size_t		 sz = strlen(str);
+	size_t		 sz;
+
+	sz = NULL == str ? 0 : strlen(str);
 
 	if (KSQL_OK != (c = ksql_writebuf(p, &sz, sizeof(size_t))))
 		return c;
+	if (0 == sz)
+		return KSQL_OK;
 	return ksql_writebuf(p, str, sz);
 }
 

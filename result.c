@@ -275,11 +275,8 @@ ksql_result_str(struct ksqlstmt *stmt, const char **p, size_t col)
 	*p = NULL;
 
 	if ( ! KSQLSRV_ISPARENT(stmt->sql)) {
-		if (KSQL_OK == (c = ksql_result_check(stmt, col))) {
+		if (KSQL_OK == (c = ksql_result_check(stmt, col)))
 			*p = sqlite3_column_text(stmt->stmt, col);
-			if (NULL == *p)
-				c = ksql_err(stmt->sql, KSQL_MEM, NULL);
-		}
 		return c;
 	}
 
@@ -290,10 +287,10 @@ ksql_result_str(struct ksqlstmt *stmt, const char **p, size_t col)
 		return c;
 
 	if (sz > 0) {
-		if (NULL == (cp = malloc(sz)))
+		if (NULL == (cp = malloc(sz + 1)))
 			return ksql_err(stmt->sql, KSQL_MEM, NULL);
-		cp[sz - 1] = '\0';
-		c = ksql_readbuf(stmt->sql, cp, sz - 1, 0);
+		cp[sz] = '\0';
+		c = ksql_readbuf(stmt->sql, cp, sz, 0);
 		if (KSQL_OK != c) {
 			free(cp);
 			return c;
