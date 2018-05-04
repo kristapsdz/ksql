@@ -35,14 +35,16 @@
 static enum ksqlc
 ksql_result_check(struct ksqlstmt *stmt, size_t col)
 {
-	enum ksqlc	 c = KSQL_OK;
 
 	if (col >= stmt->rcols) 
-		c = ksql_verr(stmt->sql, KSQL_RESULTCOL, 
+		return ksql_verr(stmt->sql, KSQL_RESULTCOL, 
 			"result index %zu exceeds maximum "
 			"index %zu", col, stmt->rcols - 1);
 
-	return c;
+	if (SQLITE_NULL == sqlite3_column_type(stmt->stmt, col))
+		return KSQL_NULL;
+
+	return KSQL_OK;
 }
 
 /*

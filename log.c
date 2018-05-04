@@ -52,6 +52,7 @@ static	const char * const ksqlcs[] = {
 	"security violation", /* KSQL_SECURITY */
 	"invalid bind column index", /* KSQL_BINDCOL */
 	"invalid result column index", /* KSQL_RESULTCOL */
+	"NULL value when requesting result", /* KSQL_NULL */
 };
 
 /*
