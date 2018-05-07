@@ -19,11 +19,13 @@
 .Os
 .Sh NAME
 .Nm ksql_result_blob ,
+.Nm ksql_result_blob_alloc ,
 .Nm ksql_result_bytes ,
 .Nm ksql_result_double ,
 .Nm ksql_result_int ,
 .Nm ksql_result_isnull ,
-.Nm ksql_result_str
+.Nm ksql_result_str ,
+.Nm ksql_result_str_alloc
 .Nd get the result columns of a statement
 .Sh LIBRARY
 .Lb ksql
@@ -35,6 +37,13 @@
 .Fo ksql_result_blob
 .Fa "struct ksqlstmt *stmt"
 .Fa "const void **p"
+.Fa "size_t *sz"
+.Fa "size_t column"
+.Fc
+.Ft enum ksqlc
+.Fo ksql_result_blob_alloc
+.Fa "struct ksqlstmt *stmt"
+.Fa "void **p"
 .Fa "size_t *sz"
 .Fa "size_t column"
 .Fc
@@ -68,6 +77,12 @@
 .Fa "const char **p"
 .Fa "size_t column"
 .Fc
+.Ft enum ksqlc
+.Fo ksql_result_str_alloc
+.Fa "struct ksqlstmt *stmt"
+.Fa "char **p"
+.Fa "size_t column"
+.Fc
 .Sh DESCRIPTION
 These functions return results following
 .Xr ksql_stmt_step 3 .
@@ -96,6 +111,19 @@ functions return memory that must be copied prior to a subsequent
 .Xr ksql_stmt_reset 3 ,
 or
 .Xr ksql_stmt_free 3 .
+The
+.Fn ksql_result_blob
+may fill in a
+.Dv NULL
+pointer in the event of an empty buffer;
+.Fn ksql_result_str
+will always return a NUL-terminated string on success.
+For the caller to manage memory, use the
+.Fn ksql_result_blob_alloc
+and
+.Fn ksql_result_str_alloc
+variants to pass back memory that must be released with
+.Xr free 3 .
 .\" .Sh CONTEXT
 .\" For section 9 functions only.
 .\" .Sh IMPLEMENTATION NOTES

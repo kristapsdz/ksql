@@ -204,8 +204,11 @@ ksqlsrv_result_str(struct ksql *p)
 	    KSQL_OK != (c = ksql_readsz(p, &col)))
 		return c;
 
-	if (KSQL_OK == (c = ksql_result_check(stmt, col)))
+	if (KSQL_OK == (c = ksql_result_check(stmt, col))) {
 		val = (const char *)sqlite3_column_text(stmt->stmt, col);
+		if (NULL == val)
+			c = ksql_err(stmt->sql, KSQL_MEM, NULL);
+	}
 
 	if (KSQL_OK != (cc = ksql_writecode(p, c)))
 		return cc;
@@ -213,6 +216,8 @@ ksqlsrv_result_str(struct ksql *p)
 		return c;
 
 	/* Check code *before* writing result. */
+
+	assert(NULL != val);
 	return ksql_writestr(p, val);
 }
 
@@ -311,11 +316,6 @@ ksql_result_str(struct ksqlstmt *stmt, const char **p, size_t col)
 	if (KSQL_OK != c)
 		return c;
 
-	/* Don't allocate for zero-sized buffers. */
-
-	if (0 == sz) 
-		return KSQL_OK;
-
 	if (NULL == (cp = malloc(sz + 1)))
 		return ksql_err(stmt->sql, KSQL_MEM, NULL);
 	cp[sz] = '\0';
@@ -351,11 +351,6 @@ ksql_result_str_alloc(struct ksqlstmt *stmt, char **p, size_t col)
 		 col, &sz, sizeof(size_t));
 	if (KSQL_OK != c)
 		return c;
-
-	/* Don't allocate for zero-sized buffers. */
-
-	if (0 == sz) 
-		return KSQL_OK;
 
 	if (NULL == (cp = malloc(sz + 1)))
 		return ksql_err(stmt->sql, KSQL_MEM, NULL);
