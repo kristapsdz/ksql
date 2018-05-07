@@ -62,14 +62,14 @@
 .Fa "int *p"
 .Fa "size_t column"
 .Fc
-.ft enum ksqlc
+.Ft enum ksqlc
 .Fo ksql_result_str
 .Fa "struct ksqlstmt *stmt"
 .Fa "const char **p"
 .Fa "size_t column"
 .Fc
 .Sh DESCRIPTION
-These functions return columns of the result from
+These functions return results following
 .Xr ksql_stmt_step 3 .
 They all accept
 .Fa stmt ,
@@ -107,6 +107,8 @@ There are a number of error conditions returned by these functions.
 Memory allocation failure.
 .It Dv KSQL_NULL
 The column has no data.
+This is not returned by
+.Fn ksql_result_isnull .
 .It Dv KSQL_RESULTCOL
 The column exceeds the maximum number of available result columns.
 .It Dv KSQL_SYSTEM
