@@ -1,6 +1,6 @@
 .\"	$Id$
 .\"
-.\" Copyright (c) 2016 Kristaps Dzonsons <kristaps@bsd.lv>
+.\" Copyright (c) 2016, 2018 Kristaps Dzonsons <kristaps@bsd.lv>
 .\"
 .\" Permission to use, copy, modify, and distribute this software for any
 .\" purpose with or without fee is hereby granted, provided that the above
@@ -34,69 +34,61 @@
 .Ft "const void *"
 .Fo ksql_stmt_blob
 .Fa "struct ksqlstmt *stmt"
-.Fa "size_t col"
+.Fa "size_t column"
 .Fc
 .Ft size_t
 .Fo ksql_stmt_bytes
 .Fa "struct ksqlstmt *stmt"
-.Fa "size_t col"
+.Fa "size_t column"
 .Fc
 .Ft double
 .Fo ksql_stmt_double
 .Fa "struct ksqlstmt *stmt"
-.Fa "size_t col"
+.Fa "size_t column"
 .Fc
 .Ft int64_t
 .Fo ksql_stmt_int
 .Fa "struct ksqlstmt *stmt"
-.Fa "size_t col"
+.Fa "size_t column"
 .Fc
 .Ft int
 .Fo ksql_stmt_isnull
 .Fa "struct ksqlstmt *stmt"
-.Fa "size_t col"
+.Fa "size_t column"
 .Fc
 .Ft "const char *"
 .Fo ksql_stmt_str
 .Fa "struct ksqlstmt *stmt"
-.Fa "size_t col"
+.Fa "size_t column"
 .Fc
 .Sh DESCRIPTION
-The
-.Nm ksql_stmt_blob ,
-.Nm ksql_stmt_bytes ,
-.Nm ksql_stmt_double ,
-.Nm ksql_stmt_int ,
-and
-.Nm ksql_stmt_str
-functions return data from a row returned after
+.Em All of these functions are deprecated.
+See
+.Xr ksql_result_double 3
+for replacements.
+.Pp
+These functions
+functions return results following
 .Xr ksql_stmt_step 3 .
-They all accept the relevant column to query, which starts at zero.
-The results are not defined for a statement without a waiting row or for
-columns beyond the prepared statement.
+They all accept
+.Fa stmt ,
+the statement allocated with
+.Xr ksql_stmt_alloc 3 ;
+and the
+.Fa column
+to query, which starts at zero.
+The results are not defined for a statement without a resulting row or
+for columns beyond the prepared statement.
 .Pp
 The
-.Nm ksql_stmt_blob
+.Fn ksql_stmt_str
 and
-.Nm ksql_stmt_bytes
-functions are usually used to return binary data.
-The
-.Nm ksql_stmt_str
-and
-.Nm ksql_stmt_blob
-return memory
-.Dq owned
-by the database, so it should be copied before modification.
-These pointers are only valid until a subsequent
+.Fn ksql_stmt_blob
+functions return memory tha tmust be copied prior to subsequent
 .Xr ksql_stmt_step 3 ,
 .Xr ksql_stmt_reset 3 ,
 or
 .Xr ksql_stmt_free 3 .
-.Pp
-The
-.Nm ksql_stmt_isnull
-function checks if the result column is empty, i.e.,
-.Dv SQLITE_NULL .
 .\" .Sh CONTEXT
 .\" For section 9 functions only.
 .\" .Sh IMPLEMENTATION NOTES
