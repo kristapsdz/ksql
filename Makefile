@@ -19,6 +19,7 @@ HTMLS	 = ksql.3.html \
 	   ksql_free.3.html \
 	   ksql_lastid.3.html \
 	   ksql_open.3.html \
+	   ksql_result_double.3.html \
 	   ksql_role.3.html \
 	   ksql_stmt_alloc.3.html \
 	   ksql_stmt_double.3.html \
@@ -39,6 +40,7 @@ XMLS	 = ksql.3.xml \
 	   ksql_free.3.xml \
 	   ksql_lastid.3.xml \
 	   ksql_open.3.xml \
+	   ksql_result_double.3.xml \
 	   ksql_role.3.xml \
 	   ksql_stmt_alloc.3.xml \
 	   ksql_stmt_double.3.xml \
@@ -59,6 +61,7 @@ MANS	 = ksql.3 \
 	   ksql_free.3 \
 	   ksql_lastid.3 \
 	   ksql_open.3 \
+	   ksql_result_double.3 \
 	   ksql_role.3 \
 	   ksql_stmt_alloc.3 \
 	   ksql_stmt_double.3 \
