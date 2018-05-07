@@ -205,7 +205,7 @@ ksqlsrv_result_str(struct ksql *p)
 		return c;
 
 	if (KSQL_OK == (c = ksql_result_check(stmt, col)))
-		val = sqlite3_column_text(stmt->stmt, col);
+		val = (const char *)sqlite3_column_text(stmt->stmt, col);
 
 	if (KSQL_OK != (cc = ksql_writecode(p, c)))
 		return cc;

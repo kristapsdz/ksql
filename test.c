@@ -197,7 +197,8 @@ main(void)
 			printf("Step (%zu:3): null\n", i);
 		else
 			printf("Step (%zu:3): [%.*s] (%zu)\n", i,
-				(int)valblobsz, valblob, valblobsz);
+				(int)valblobsz, 
+				(const char *)valblob, valblobsz);
 		printf("Step (%zu:4): %f\n", i, valdouble);
 		printf("Step (%zu): expecting null: %d\n", i, nulls[i]);
 
