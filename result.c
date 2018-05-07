@@ -27,6 +27,13 @@
 #include "ksql.h"
 #include "extern.h"
 
+static int
+ksql_result_isfatal(enum ksqlc c)
+{
+
+	return KSQL_OK != c;
+}
+
 /*
  * Make sure the result at column "col" is accessible to the current
  * statement.
@@ -40,9 +47,9 @@ ksql_result_check(struct ksqlstmt *stmt, size_t col)
 		return ksql_verr(stmt->sql, KSQL_RESULTCOL, 
 			"result index %zu exceeds maximum "
 			"index %zu", col, stmt->rcols - 1);
-
 	if (SQLITE_NULL == sqlite3_column_type(stmt->stmt, col))
-		return KSQL_NULL;
+		return ksql_verr(stmt->sql, KSQL_NULL, 
+			"result requested for null column %zu", col);
 
 	return KSQL_OK;
 }
@@ -66,12 +73,12 @@ ksql_readres(struct ksqlstmt *stmt, enum ksqlop op,
 	    KSQL_OK != (c = ksql_writesz(stmt->sql, col)) ||
 	    KSQL_OK != (c = ksql_readcode(stmt->sql, &code)))
 		return c;
-	if (KSQL_OK != code)
-		return c;
+	if (ksql_result_isfatal(code))
+		return code;
 	if (KSQL_OK != (c = ksql_readbuf(stmt->sql, buf, bufsz, 0)))
 		return c;
 
-	return KSQL_OK;
+	return code;
 }
 
 enum ksqlc
@@ -88,7 +95,7 @@ ksqlsrv_result_blob(struct ksql *p)
 	c = ksql_result_blob(stmt, &val, &sz, col);
 	if (KSQL_OK != (cc = ksql_writecode(p, c)))
 		return cc;
-	else if (KSQL_OK != c)
+	else if (ksql_result_isfatal(c))
 		return c;
 
 	/* Check code *before* writing result. */
@@ -111,7 +118,7 @@ ksqlsrv_result_isnull(struct ksql *p)
 	c = ksql_result_isnull(stmt, &val, col);
 	if (KSQL_OK != (cc = ksql_writecode(p, c)))
 		return cc;
-	else if (KSQL_OK != c)
+	else if (ksql_result_isfatal(c))
 		return c;
 
 	/* Check code *before* writing result. */
@@ -131,7 +138,7 @@ ksqlsrv_result_bytes(struct ksql *p)
 	c = ksql_result_bytes(stmt, &val, col);
 	if (KSQL_OK != (cc = ksql_writecode(p, c)))
 		return cc;
-	else if (KSQL_OK != c)
+	else if (ksql_result_isfatal(c))
 		return c;
 
 	/* Check code *before* writing result. */
@@ -152,7 +159,7 @@ ksqlsrv_result_double(struct ksql *p)
 	c = ksql_result_double(stmt, &val, col);
 	if (KSQL_OK != (cc = ksql_writecode(p, c)))
 		return cc;
-	else if (KSQL_OK != c)
+	else if (ksql_result_isfatal(c))
 		return c;
 
 	/* Check code *before* writing result. */
@@ -173,7 +180,7 @@ ksqlsrv_result_int(struct ksql *p)
 	c = ksql_result_int(stmt, &val, col);
 	if (KSQL_OK != (cc = ksql_writecode(p, c)))
 		return cc;
-	else if (KSQL_OK != c)
+	else if (ksql_result_isfatal(c))
 		return c;
 
 	/* Check code *before* writing result. */
@@ -194,7 +201,7 @@ ksqlsrv_result_str(struct ksql *p)
 	c = ksql_result_str(stmt, &val, col);
 	if (KSQL_OK != (cc = ksql_writecode(p, c)))
 		return cc;
-	else if (KSQL_OK != c)
+	else if (ksql_result_isfatal(c))
 		return c;
 
 	/* Check code *before* writing result. */
@@ -204,18 +211,30 @@ ksqlsrv_result_str(struct ksql *p)
 enum ksqlc
 ksql_result_isnull(struct ksqlstmt *stmt, int *p, size_t col)
 {
-	enum ksqlc	 c;
 
  	*p = 0;
 
 	if (KSQLSRV_ISPARENT(stmt->sql))
 		return ksql_readres(stmt, KSQLOP_RESULT_ISNULL, 
 			col, p, sizeof(int));
-	if (KSQL_OK == (c = ksql_result_check(stmt, col)))
-		*p = SQLITE_NULL ==
-			sqlite3_column_type(stmt->stmt, col);
 
-	return c;
+	/*
+	 * Do this differently from the others by not performing the
+	 * SQLITE_NULL check.
+	 * Eventually, the ksql_result_check() function will need to be
+	 * modified so that it doesn't perform that one check for this
+	 * function, else we'll end up duplicating code.
+	 */
+
+	if (col >= stmt->rcols) 
+		return ksql_verr(stmt->sql, KSQL_RESULTCOL, 
+			"result index %zu exceeds maximum "
+			"index %zu", col, stmt->rcols - 1);
+
+	if (SQLITE_NULL == sqlite3_column_type(stmt->stmt, col))
+		*p = 1;
+
+	return KSQL_OK;
 }
 
 enum ksqlc
