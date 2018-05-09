@@ -43,6 +43,9 @@ static enum ksqlc
 ksql_result_check(struct ksqlstmt *stmt, size_t col)
 {
 
+	if ( ! stmt->hasrow)
+		return ksql_verr(stmt->sql, KSQL_NORESULTS, 
+			"result index %zu without any rows", col);
 	if (col >= stmt->rcols) 
 		return ksql_verr(stmt->sql, KSQL_RESULTCOL, 
 			"result index %zu exceeds maximum "

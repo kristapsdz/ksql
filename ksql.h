@@ -79,6 +79,7 @@ enum ksqlc {
 	KSQL_BINDCOL, /* invalid bind column index */
 	KSQL_RESULTCOL, /* invalid result column index */
 	KSQL_NULL, /* NULL value when requesting result */
+	KSQL_NORESULTS, /* request for results without any rows */
 };
 
 typedef	void (*ksqldbmsg)(void *, int, int, const char *, const char *);

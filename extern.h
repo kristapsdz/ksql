@@ -111,6 +111,7 @@ struct	ksqlstmt {
 	struct kcacheq		 cache; /* pointer cache */
 	struct ksql		*sql; /* corresponding db */
 	void			*ptr; /* daemon mode pointer */
+	int			 hasrow; /* has a result row */
 	TAILQ_ENTRY(ksqlstmt) 	 entries;
 };
 

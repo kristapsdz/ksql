@@ -53,6 +53,7 @@ static	const char * const ksqlcs[] = {
 	"invalid bind column index", /* KSQL_BINDCOL */
 	"invalid result column index", /* KSQL_RESULTCOL */
 	"NULL value when requesting result", /* KSQL_NULL */
+	"request for results without any rows", /* KSQL_NORESULTS */
 };
 
 /*

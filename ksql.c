@@ -1250,21 +1250,23 @@ ksql_step_inner(struct ksqlstmt *stmt, size_t cstr)
 		ksql_cache_flush(stmt);
 		c = ksql_writeop(stmt->sql, KSQLOP_STMT_STEP);
 		if (KSQL_OK != c)
-			return(c);
+			return c;
 		c = ksql_writeptr(stmt->sql, stmt->ptr);
 		if (KSQL_OK != c)
-			return(c);
+			return c;
 		c = ksql_writesz(stmt->sql, cstr);
 		if (KSQL_OK != c)
-			return(c);
+			return c;
 		c = ksql_readcode(stmt->sql, &cc);
 		if (KSQL_OK != c)
-			return(c);
-		return(cc);
+			return c;
+		return cc;
 	}
 
+	stmt->hasrow = 0;
+
 	if (NULL == stmt->sql->db) 
-		return(ksql_err(stmt->sql, KSQL_NOTOPEN, NULL));
+		return ksql_err(stmt->sql, KSQL_NOTOPEN, NULL);
 again:
 	rc = sqlite3_step(stmt->stmt);
 	if (SQLITE_BUSY == rc) {
@@ -1279,13 +1281,16 @@ again:
 	}
 
 	if (SQLITE_DONE == rc)
-		return(KSQL_DONE);
-	if (SQLITE_ROW == rc)
-		return(KSQL_ROW);
+		return KSQL_DONE;
+	if (SQLITE_ROW == rc) {
+		stmt->hasrow = 1;
+		return KSQL_ROW;
+	}
 
 	if (SQLITE_CONSTRAINT == rc && cstr)
-		return(KSQL_CONSTRAINT);
-	return(ksql_dberr(stmt->sql));
+		return KSQL_CONSTRAINT;
+
+	return ksql_dberr(stmt->sql);
 }
 
 enum ksqlc
@@ -1305,8 +1310,10 @@ ksql_stmt_reset(struct ksqlstmt *stmt)
 		if (KSQL_OK != c)
 			return(c);
 		c = ksql_writeptr(stmt->sql, stmt->ptr);
-	} else
+	} else {
 		sqlite3_reset(stmt->stmt);
+		stmt->hasrow = 0;
+	}
 
 	/*
 	 * XXX: DO NOT RETURN THE CODE OF SQLITE3_RESET.
@@ -1315,7 +1322,7 @@ ksql_stmt_reset(struct ksqlstmt *stmt)
 	 * returns an error.
 	 */
 
-	return(c);
+	return c;
 }
 
 enum ksqlc
@@ -1566,6 +1573,7 @@ again:
 	assert(NULL != ss);
 	ss->bcols = sqlite3_bind_parameter_count(st);
 	ss->rcols = sqlite3_column_count(st);
+	ss->hasrow = 0;
 	ss->stmt = st;
 	ss->id = id;
 	ss->sql = p;
