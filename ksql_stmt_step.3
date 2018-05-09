@@ -61,23 +61,25 @@ by sleeping for a random interval, then trying again infinitely.
 .\" .Sh IMPLEMENTATION NOTES
 .\" Not used in OpenBSD.
 .Sh RETURN VALUES
-These functions return
+These functions return several error conditions:
 .Dv KSQL_NOTOPEN
-if the database connection has not been opened,
+if the database connection has not been opened;
+.Dv KSQL_DB
+on database errors, including constraint violations with
+.Fn ksql_stmt_step ;
+and
+.Dv KSQL_MEM
+on memory allocation failure.
+.Pp
+It also returns the following non-error conditions:
 .Dv KSQL_ROW
 if a row is available for examining,
 .Dv KSQL_DONE
-if no more rows are available,
+if no more rows are available, or
 .Dv KSQL_CONSTRAINT
 if
 .Fn ksql_stmt_cstep
 was used and a constraint was violated,
-.Dv KSQL_DB
-on database errors, including constraint violations in
-.Fn ksql_stmt_step ,
-or
-.Dv KSQL_OK
-otherwise.
 .\" For sections 2, 3, and 9 function return values only.
 .\" .Sh ENVIRONMENT
 .\" For sections 1, 6, 7, and 8 only.
