@@ -133,6 +133,12 @@ There are a number of error conditions returned by these functions.
 .Bl -tag -width Ds
 .It Dv KSQL_MEM
 Memory allocation failure.
+.It Dv KSQL_NORESULTS
+There is no result row available.
+This happens when the prior
+.Xr ksql_stmt_step 3
+did not return
+.Dv KSQL_ROW .
 .It Dv KSQL_NULL
 The column has no data.
 This is not returned by
