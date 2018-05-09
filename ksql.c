@@ -1244,7 +1244,7 @@ ksql_step_inner(struct ksqlstmt *stmt, size_t cstr)
 {
 	int	 	rc;
 	size_t	 	attempt = 0;
-	enum ksqlc	c, cc;
+	enum ksqlc	c, cc = KSQL_OK;
 
 	if (KSQLSRV_ISPARENT(stmt->sql)) {
 		ksql_cache_flush(stmt);
