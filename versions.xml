@@ -3,6 +3,26 @@
 <articles>
 	<article data-sblg-article="1" data-sblg-tags="version">
 		<header>
+			<h1>0.3.2</h1>
+			<address>Kristaps Dzonsons</address>
+			<time datetime="2018-05-09">2018-05-09</time>
+		</header>
+		<aside>
+			<p>
+				Add the <a
+					href="ksql_result_double.3.html">ksql_result_double(3)</a>
+				family of functions.
+				These will replace the existing <a
+					href="ksql_stmt_double.3.html">ksql_stmt_double(3)</a>
+				family with safe versions.
+				Specifically, the functions return an error code (if not exiting
+				with errors) that check for null values and columns outside of the
+				result range.
+			</p>
+		</aside>
+	</article>
+	<article data-sblg-article="1" data-sblg-tags="version">
+		<header>
 			<h1>0.3.1</h1>
 			<address>Kristaps Dzonsons</address>
 			<time datetime="2018-04-26">2018-04-26</time>
