@@ -118,7 +118,7 @@ www: $(HTMLS) index.html ksql.svg ksql.tar.gz atom.xml
 
 installwww: www
 	mkdir -p $(WWWDIR)/snapshots
-	$(INSTALL_DATA) atom.xml $(HTMLS) index.html $(BUILT) $(WWWDIR)
+	$(INSTALL_DATA) atom.xml ksql.svg $(HTMLS) index.html $(BUILT) $(WWWDIR)
 	$(INSTALL_DATA) ksql.tar.gz $(WWWDIR)/snapshots
 	$(INSTALL_DATA) ksql.tar.gz $(WWWDIR)/snapshots/ksql-$(VERSION).tar.gz
 
