@@ -17,6 +17,21 @@
 #ifndef KSQL_H
 #define KSQL_H
 
+#if !defined(__BEGIN_DECLS)
+#  ifdef __cplusplus
+#  define       __BEGIN_DECLS           extern "C" {
+#  else
+#  define       __BEGIN_DECLS
+#  endif
+#endif
+#if !defined(__END_DECLS)
+#  ifdef __cplusplus
+#  define       __END_DECLS             }
+#  else
+#  define       __END_DECLS
+#  endif
+#endif
+
 /*
  * Stringification of version major, minor, and build.
  * I have on idea if this is necessary.
