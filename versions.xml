@@ -3,6 +3,22 @@
 <articles>
 	<article data-sblg-article="1" data-sblg-tags="version">
 		<header>
+			<h1>0.3.3</h1>
+			<address>Kristaps Dzonsons</address>
+			<time datetime="2018-12-16">2018-12-16</time>
+		</header>
+		<aside>
+			<p>
+				Build compatibility with 
+				<a href="https://www.musl-libc.org/">musl</a> and sync with
+				newest 
+				<a href="https://github.com/kristapsdz/oconfigure">oconfigure</a>.
+				No code change beyond that.
+			</p>
+		</aside>
+	</article>
+	<article data-sblg-article="1" data-sblg-tags="version">
+		<header>
 			<h1>0.3.2</h1>
 			<address>Kristaps Dzonsons</address>
 			<time datetime="2018-05-09">2018-05-09</time>
