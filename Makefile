@@ -95,9 +95,6 @@ OBJS	 = bind.o \
 	   trace.o \
 	   trans.o
 
-CFLAGS   += -I/usr/local/include
-LDFLAGS	 += -L/usr/local/lib
-
 all: test libksql.a test.db
 
 test: test.c compats.o libksql.a
