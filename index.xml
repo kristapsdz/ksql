@@ -18,6 +18,9 @@
 				<a href="https://kristaps.bsd.lv/kwebapp">kwebapp</a>
 			</section>
 			<ul class="menu">
+				<li class="version">
+					v<nav data-sblg-nav="1" data-sblg-navtag="version" data-sblg-navxml="1" data-sblg-navsz="1">${sblg-titletext}</nav>
+				</li>
 				<li>
 					<a href="snapshots" itemprop="downloadURL"><span>download</span></a>
 				</li>
@@ -37,49 +40,49 @@
 			</ul>
 		</nav>
 		<article>
+			<header>
+				<h1 itemprop="name">ksql</h1>
+				<div itemprop="description">yet another <a href="https://www.sqlite.org">SQLite</a> wrapper</div>
+			</header>
 			<section>
-				<div>
-					<header>
-						<h1 itemprop="name">ksql</h1>
-						<div itemprop="description">yet another <a href="https://www.sqlite.org">SQLite</a> wrapper</div>
-					</header>
-					<p>
-						<span class="nm">ksql</span> is a <q>lazy man's</q> C/C++ wrapper for the SQLite <a
-							href="https://www.sqlite.org/c3ref/intro.html">API interface</a>.
-						It is written to make sure sloppy programming won't cause your SQLite database to be inconsistent (transactions and
-						statements open on exit and certain signals).
-						Specifically, it exits on any database errors; and upon exit (or signal), cleans up open statements, transactions, and databases.
-						See <a href="ksql.3.html">ksql(3)</a> and friends for details.
-					</p>
-					<p>
-						It also has some handy security features: a <a
-							href="https://learnbchs.org/ksql.html">split-process</a> model protecting the database
-						from your application, full RBAC capabilities on the statement level, and immutable stored
-						statements to prevent the application from crafting its own SQL.
-					</p>
-					<figure>
-						<img src="ksql.svg" alt="ksql(3) operation" />
-					</figure>
-					<p>
-						The library runs on <span itemprop="operatingSystem">UNIX</span> systems: <span
-							itemprop="operatingSystem">OpenBSD</span>, <span
-							itemprop="operatingSystem">Linux</span>, and <span itemprop="operatingSystem">Mac OS
-							X</span>.  
-						It benefits the most from OpenBSD systems using the <a
-							href="https://man.openbsd.org/pledge.2">pledge(2)</a> security mechanism.
-						It is a <a href="https://www.bsd.lv">BSD.lv</a> project.
-					</p>
-					<nav data-sblg-nav="1" data-sblg-navsz="10" data-sblg-navcontent="1" data-sblg-navtag="version">
-						<div>
-							Version <span class="version">${sblg-title}</span> 
-							(<time datetime="${sblg-date}">${sblg-date}</time>)
-						</div>
-						<div>
-							${sblg-aside}
-						</div>
-					</nav>
-				</div>
+				<p>
+					<span class="nm">ksql</span> is a <q>lazy man's</q> C/C++ wrapper for the SQLite <a
+						href="https://www.sqlite.org/c3ref/intro.html">API interface</a>.
+					It is written to make sure sloppy programming won't cause your SQLite database to be inconsistent (transactions and
+					statements open on exit and certain signals).
+					Specifically, it exits on any database errors; and upon exit (or signal), cleans up open statements, transactions, and databases.
+					See <a href="ksql.3.html">ksql(3)</a> and friends for details.
+				</p>
+				<p>
+					It also has some handy security features: a <a
+						href="https://learnbchs.org/ksql.html">split-process</a> model protecting the database
+					from your application, full RBAC capabilities on the statement level, and immutable stored
+					statements to prevent the application from crafting its own SQL.
+				</p>
+				<figure>
+					<img src="ksql.svg" alt="ksql(3) operation" />
+				</figure>
+				<p>
+					The library runs on <span itemprop="operatingSystem">UNIX</span> systems: <a href="https://www.openbsd.org"
+						itemprop="operatingSystem">OpenBSD</a>, <a href="https://www.freebsd.org"
+						itemprop="operatingSystem">FreeBSD</a>, <span
+						itemprop="operatingSystem">Linux</span> (<a href="https://www.musl-libc.org/">musl</a> and 
+					<a href="https://www.gnu.org/software/libc/">glibc</a>), and <span itemprop="operatingSystem">Mac OS
+						X</span>.  
+					It benefits the most from OpenBSD systems using the <a
+						href="https://man.openbsd.org/pledge.2">pledge(2)</a> security mechanism.
+					It is a <a href="https://www.bsd.lv">BSD.lv</a> project.
+				</p>
 			</section>
+			<nav data-sblg-nav="1" data-sblg-navsz="10" data-sblg-navcontent="1" data-sblg-navtag="version">
+				<div>
+					Version <span class="version">${sblg-title}</span> 
+					(<time datetime="${sblg-date}">${sblg-date}</time>)
+				</div>
+				<div>
+					${sblg-aside}
+				</div>
+			</nav>
 		</article>
 		<footer>
 			<div>
