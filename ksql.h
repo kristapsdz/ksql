@@ -135,15 +135,22 @@ struct	ksqlstmt;
 
 __BEGIN_DECLS
 
-struct ksql	*ksql_alloc(const struct ksqlcfg *);
+struct ksql	*ksql_alloc(const struct ksqlcfg *) 
+			__attribute__((deprecated));
 struct ksql	*ksql_alloc_child(const struct ksqlcfg *, void(*)(void *), void *);
 enum ksqlc	 ksql_bind_blob(struct ksqlstmt *, 
-			size_t, const void *, size_t);
-enum ksqlc	 ksql_bind_double(struct ksqlstmt *, size_t, double);
-enum ksqlc	 ksql_bind_int(struct ksqlstmt *, size_t, int64_t);
-enum ksqlc	 ksql_bind_null(struct ksqlstmt *, size_t);
-enum ksqlc	 ksql_bind_str(struct ksqlstmt *, size_t, const char *);
-enum ksqlc	 ksql_bind_zblob(struct ksqlstmt *, size_t, size_t);
+			size_t, const void *, size_t) 
+			__attribute__((deprecated));
+enum ksqlc	 ksql_bind_double(struct ksqlstmt *, size_t, double) 
+			__attribute__((deprecated));
+enum ksqlc	 ksql_bind_int(struct ksqlstmt *, size_t, int64_t) 
+			__attribute__((deprecated));
+enum ksqlc	 ksql_bind_null(struct ksqlstmt *, size_t) 
+			__attribute__((deprecated));
+enum ksqlc	 ksql_bind_str(struct ksqlstmt *, size_t, const char *) 
+			__attribute__((deprecated));
+enum ksqlc	 ksql_bind_zblob(struct ksqlstmt *, size_t, size_t) 
+			__attribute__((deprecated));
 void		 ksql_cfg_defaults(struct ksqlcfg *);
 enum ksqlc	 ksql_close(struct ksql *);
 enum ksqlc	 ksql_exec(struct ksql *, const char *, size_t);
