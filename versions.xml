@@ -3,6 +3,20 @@
 <articles>
 	<article data-sblg-article="1" data-sblg-tags="version">
 		<header>
+			<h1>0.3.4</h1>
+			<address>Kristaps Dzonsons</address>
+			<time datetime="2018-12-17">2018-12-17</time>
+		</header>
+		<aside>
+			<p>
+				Complete <a href="https://www.musl-libc.org/">musl</a> work, at
+				least with <code>musl-gcc</code> on Debian.
+				Finally mark unsafe functions as being deprecated.
+			</p>
+		</aside>
+	</article>
+	<article data-sblg-article="1" data-sblg-tags="version">
+		<header>
 			<h1>0.3.3</h1>
 			<address>Kristaps Dzonsons</address>
 			<time datetime="2018-12-16">2018-12-16</time>
