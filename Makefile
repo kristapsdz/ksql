@@ -95,7 +95,10 @@ OBJS	 = bind.o \
 	   trace.o \
 	   trans.o
 
-CPPFLAGS += -Wno-deprecated-declarations
+# FreeBSD's default .c.o doesn't recognise CPPFLAGS.
+# CFLAGS += $(CPPFLAGS)
+
+CFLAGS += -Wno-deprecated-declarations
 
 all: test libksql.a test.db
 
