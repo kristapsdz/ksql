@@ -3,6 +3,22 @@
 <articles>
 	<article data-sblg-article="1" data-sblg-tags="version">
 		<header>
+			<h1>0.3.5</h1>
+			<address>Kristaps Dzonsons</address>
+			<time datetime="2018-12-17">2018-12-17</time>
+		</header>
+		<aside>
+			<p>
+				Sync with latest 
+				<a href="https://github.com/kristapsdz/oconfigure">oconfigure</a> 
+				and test compiling on Linux (musl, glibc), FreeBSD, and of course
+				the origin system OpenBSD.
+				No functional change.
+			</p>
+		</aside>
+	</article>
+	<article data-sblg-article="1" data-sblg-tags="version">
+		<header>
 			<h1>0.3.4</h1>
 			<address>Kristaps Dzonsons</address>
 			<time datetime="2018-12-17">2018-12-17</time>

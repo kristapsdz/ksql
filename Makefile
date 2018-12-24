@@ -98,6 +98,8 @@ OBJS	 = bind.o \
 # FreeBSD's default .c.o doesn't recognise CPPFLAGS.
 # CFLAGS += $(CPPFLAGS)
 
+# Use this, for now, because we've marked functions as being deprecated
+# but still use them internally.
 CFLAGS += -Wno-deprecated-declarations
 
 all: test libksql.a test.db
