@@ -139,18 +139,12 @@ struct ksql	*ksql_alloc(const struct ksqlcfg *)
 			__attribute__((deprecated));
 struct ksql	*ksql_alloc_child(const struct ksqlcfg *, void(*)(void *), void *);
 enum ksqlc	 ksql_bind_blob(struct ksqlstmt *, 
-			size_t, const void *, size_t) 
-			__attribute__((deprecated));
-enum ksqlc	 ksql_bind_double(struct ksqlstmt *, size_t, double) 
-			__attribute__((deprecated));
-enum ksqlc	 ksql_bind_int(struct ksqlstmt *, size_t, int64_t) 
-			__attribute__((deprecated));
-enum ksqlc	 ksql_bind_null(struct ksqlstmt *, size_t) 
-			__attribute__((deprecated));
-enum ksqlc	 ksql_bind_str(struct ksqlstmt *, size_t, const char *) 
-			__attribute__((deprecated));
-enum ksqlc	 ksql_bind_zblob(struct ksqlstmt *, size_t, size_t) 
-			__attribute__((deprecated));
+			size_t, const void *, size_t);
+enum ksqlc	 ksql_bind_double(struct ksqlstmt *, size_t, double);
+enum ksqlc	 ksql_bind_int(struct ksqlstmt *, size_t, int64_t);
+enum ksqlc	 ksql_bind_null(struct ksqlstmt *, size_t);
+enum ksqlc	 ksql_bind_str(struct ksqlstmt *, size_t, const char *);
+enum ksqlc	 ksql_bind_zblob(struct ksqlstmt *, size_t, size_t);
 void		 ksql_cfg_defaults(struct ksqlcfg *);
 enum ksqlc	 ksql_close(struct ksql *);
 enum ksqlc	 ksql_exec(struct ksql *, const char *, size_t);
@@ -168,16 +162,25 @@ enum ksqlc	 ksql_result_str_alloc(struct ksqlstmt *, char **, size_t);
 void		 ksql_role(struct ksql *, size_t);
 enum ksqlc	 ksql_stmt_alloc(struct ksql *, 
 			struct ksqlstmt **, const char *, size_t);
-const void	*ksql_stmt_blob(struct ksqlstmt *, size_t);
-size_t		 ksql_stmt_bytes(struct ksqlstmt *, size_t);
-enum ksqlc	 ksql_stmt_cstep(struct ksqlstmt *);
-double		 ksql_stmt_double(struct ksqlstmt *, size_t);
-enum ksqlc	 ksql_stmt_free(struct ksqlstmt *);
-int64_t		 ksql_stmt_int(struct ksqlstmt *, size_t);
-int		 ksql_stmt_isnull(struct ksqlstmt *, size_t);
-enum ksqlc	 ksql_stmt_reset(struct ksqlstmt *);
+
 enum ksqlc	 ksql_stmt_step(struct ksqlstmt *);
-const char	*ksql_stmt_str(struct ksqlstmt *, size_t);
+enum ksqlc	 ksql_stmt_cstep(struct ksqlstmt *);
+enum ksqlc	 ksql_stmt_reset(struct ksqlstmt *);
+enum ksqlc	 ksql_stmt_free(struct ksqlstmt *);
+
+const void	*ksql_stmt_blob(struct ksqlstmt *, size_t)
+			__attribute__((deprecated));
+size_t		 ksql_stmt_bytes(struct ksqlstmt *, size_t)
+			__attribute__((deprecated));
+double		 ksql_stmt_double(struct ksqlstmt *, size_t)
+			__attribute__((deprecated));
+int64_t		 ksql_stmt_int(struct ksqlstmt *, size_t)
+			__attribute__((deprecated));
+int		 ksql_stmt_isnull(struct ksqlstmt *, size_t)
+			__attribute__((deprecated));
+const char	*ksql_stmt_str(struct ksqlstmt *, size_t)
+			__attribute__((deprecated));
+
 enum ksqlc	 ksql_trans_commit(struct ksql *, size_t);
 enum ksqlc	 ksql_trans_exclopen(struct ksql *, size_t);
 enum ksqlc	 ksql_trans_open(struct ksql *, size_t);
