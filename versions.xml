@@ -5,9 +5,15 @@
 		<header>
 			<h1>0.3.5</h1>
 			<address>Kristaps Dzonsons</address>
-			<time datetime="2018-12-17">2018-12-17</time>
+			<time datetime="2018-12-28">2018-12-28</time>
 		</header>
 		<aside>
+			<p>
+				Fix which functions are deprecated.
+				The <q>bind</q> functions are not&#8212;the <q>stmt</q> functions 
+				(which return data without checking type) are.
+				No functional change.
+			</p>
 			<p>
 				Sync with latest 
 				<a href="https://github.com/kristapsdz/oconfigure">oconfigure</a> 
